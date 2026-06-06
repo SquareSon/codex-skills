@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sync Skills to GitHub"
+  short_description: "Ask before syncing local skill edits to GitHub"
+  default_prompt: "Use $sync-skills-to-github after editing local Codex skills to ask whether to sync the changes to GitHub."
