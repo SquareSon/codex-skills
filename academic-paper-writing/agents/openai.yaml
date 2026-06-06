@@ -1,0 +1,4 @@
+interface:
+  display_name: "Academic Paper Writing"
+  short_description: "Polish papers incl. related work, figures, and results."
+  default_prompt: "Use $academic-paper-writing to revise this manuscript text into rigorous, natural, replacement-ready academic prose with coherent related work, consistent formulas, evidence-backed result analysis, and generated key-step schematics when helpful."

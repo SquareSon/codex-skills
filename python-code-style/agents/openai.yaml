@@ -1,0 +1,4 @@
+interface:
+  display_name: "Python Code Style"
+  short_description: "Apply Python style preferences: Chinese comments, UTF-8, focused comments, reuse, mature libraries, and simple readable code."
+  default_prompt: "Use my Python code style preferences: Chinese comments with UTF-8 care, focused single-line and inline comments over large docstrings, docstrings only when useful for complex functions, force comment/docstring wrapping only past 128 characters, reuse of existing helpers and mature libraries, concise Python idioms guided by The Zen of Python's Simple > complex > complicated principle, demo blocks when appropriate, visualization, and foldable #region sections."
