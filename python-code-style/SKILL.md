@@ -1,6 +1,6 @@
 ---
 name: python-code-style
-description: Apply the user's Python coding standards and style preferences. Use when Codex writes, edits, refactors, reviews, explains, or tests Python code, especially for scripts, research code, data processing, visualization, demos, and modules that benefit from Chinese comments, focused comments/docstrings, reusable existing helpers, mature libraries, concise Python syntax guided by The Zen of Python, and foldable region organization.
+description: Apply the user's Python coding standards and style preferences. Use when Codex writes, edits, refactors, reviews, explains, or tests Python code, especially for scripts, Bash/Python CLI interfaces, research code, model training, data processing, visualization, demos, paper-inspired implementations, and modules that benefit from Chinese comments, focused comments/docstrings, reusable existing helpers, mature libraries, concise Python syntax guided by The Zen of Python, documentation updates, and foldable region organization.
 ---
 
 # Python Code Style
@@ -68,12 +68,34 @@ description: Apply the user's Python coding standards and style preferences. Use
 - Use comprehensions, context managers, tuple unpacking, f-strings, pathlib, and standard library tools when they clarify intent.
 - Keep idioms readable; do not use clever one-liners when a small commented block is easier to follow.
 
+## Script Interfaces
+
+- For Bash scripts and Python console entry points, prefer explicit script options over environment variables for user-controlled behavior.
+- Use `argparse`, `typer`, `click`, or the repository's established CLI pattern for Python script parameters when appropriate.
+- Reserve environment variables for credentials, external service configuration, CI/runtime integration, or values that are genuinely process-environment concerns.
+- Document important script options in help text, module demos, README-style docs, or nearby usage examples when the script is meant to be reused.
+
+## Research Sources
+
+- When code is supported or inspired by a paper, cite the paper source and state the concrete support or inspiration.
+- Include enough source detail to identify the paper, such as title, authors if available, year, DOI/arXiv URL, or the local bibliography key used by the project.
+- Place paper-source notes near the relevant algorithm, model, loss function, preprocessing method, experiment setup, or documentation section.
+- Distinguish direct implementation requirements from loose inspiration; do not imply a paper supports behavior that is only an engineering choice.
+
 ## Module Demo Blocks
 
 - For module-style Python files, include a useful `if __name__ == "__main__":` demo by default when it fits the module.
 - Make demos runnable and illustrative, not merely placeholder calls.
 - Include sufficient visualization for computational, scientific, image, signal, geometry, model, or data-processing code when visualization helps verify behavior.
+- For model training workflows, prefer Weights & Biases (`wandb`) for tracking metrics, losses, hyperparameters, artifacts, and training visualizations when it fits the project and credentials/runtime are available.
 - Keep demos separated from library logic and clearly commented.
+
+## Code Documentation
+
+- Encourage lightweight, living documentation that helps Codex and future maintainers quickly understand the code.
+- When changing code, update nearby docs, usage examples, README sections, module comments, or design notes that would otherwise become stale.
+- Prefer concise overview docs for non-trivial modules, pipelines, training workflows, data formats, CLI usage, and experiment procedures.
+- Do not create verbose standalone documentation when a short updated section or example near the code would be clearer.
 
 ## Region Organization
 
@@ -91,3 +113,7 @@ description: Apply the user's Python coding standards and style preferences. Use
 - Confirm major configuration values and globals have inline explanatory comments.
 - Confirm existing comments were preserved or intentionally updated.
 - Confirm the code reuses local functionality where appropriate and avoids thin wrapper helpers.
+- Confirm Bash/Python script parameters use explicit CLI options unless environment variables are the right abstraction.
+- Confirm paper-supported or paper-inspired code cites the source and explains the specific support or inspiration.
+- Confirm relevant docs or usage examples were updated together with code changes.
+- Confirm model training code uses or considers `wandb` visualization when suitable.
