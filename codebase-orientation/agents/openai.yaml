@@ -1,4 +1,4 @@
 interface:
   display_name: "Codebase Orientation"
-  short_description: "Understand code paths, README context, and Python env."
-  default_prompt: "Use this skill when I provide a work path and auxiliary paths and ask you to deeply analyze the codebase, create or update README.md, quickly understand the project from README.md while checking whether it is stale, or confirm the conda environment before Python dependency work."
+  short_description: "Understand code paths, README context, and required runtime env."
+  default_prompt: "Use this skill when I provide a work path, required runtime/dependency environment, and auxiliary paths and ask you to deeply analyze the codebase, create or update README.md, quickly understand the project from README.md while checking whether it is stale, or confirm the conda/runtime environment before dependency work, tests, scripts, or execution. If I have not specified the environment, ask me to specify it before environment-dependent operations."

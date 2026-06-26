@@ -1,6 +1,6 @@
 ---
 name: codebase-orientation
-description: Build or refresh a global understanding of a codebase from a user-provided work path and optional auxiliary/reference paths. Use when the user asks Codex to analyze a code path, understand a project before working, quickly understand from README.md, inspect whether README.md is outdated, distinguish active code from deprecated old code, treat auxiliary paths as read-only references, or confirm the Python conda environment before dependency work.
+description: Build or refresh a global understanding of a codebase from a user-provided work path, required runtime/dependency environment, and optional auxiliary/reference paths. Use when the user asks Codex to analyze a code path, understand a project before working, quickly understand from README.md, inspect whether README.md is outdated, distinguish active code from deprecated old code, treat auxiliary paths as read-only references, or confirm the Python conda/runtime environment before dependency work, tests, or execution.
 ---
 
 # Codebase Orientation
@@ -18,9 +18,11 @@ Write reports and generated `README.md` content in the user's language unless th
 - Do not modify deprecated old code unless the user explicitly asks to work on it.
 - When a path role is ambiguous, infer conservatively from the user's wording and state the assumption briefly.
 
-## Conda Environment
+## Project Environment
 
-- When the project uses Python and the user has not explicitly named the current conda environment, ask the user to confirm which conda environment to use before installing Python packages or libraries.
+- Treat the target runtime/dependency environment as required context for codebase orientation when later dependency installation, tests, execution, notebooks, scripts, or generated commands may depend on it.
+- If the user has not specified the environment, ask them to specify it before performing environment-dependent operations.
+- When the project uses Python and the user has not explicitly named the current conda environment, ask the user to confirm which conda environment to use before installing Python packages or libraries, running tests, running scripts, or generating environment-specific commands.
 - After the user confirms the conda environment, perform all Python package and library installation for that project inside the confirmed environment.
 - Prefer environment-specific commands such as `conda run -n <env> python -m pip install ...` or activating the confirmed environment before installation.
 - Do not install Python dependencies into base, the system Python, or an inferred environment unless the user explicitly approves it.
@@ -66,6 +68,7 @@ Keep Quick Understanding Mode fast. Do not perform a full file-by-file audit unl
 When creating or updating the work-path `README.md`, include these sections unless a local README structure already exists and should be preserved:
 
 - Project Purpose: the project's core goal and main idea.
+- Project Environment: the specified or inferred runtime/dependency environment, and whether user confirmation is still required.
 - Main Workflow: how the code pieces work together end to end.
 - Active Code Map: important files or folders and each one's task.
 - Deprecated Or Ignored Code: old code that should not be changed or analyzed by default, with evidence.
@@ -85,7 +88,8 @@ Keep the README concise but specific. Prefer dense, practical orientation notes 
 ## Final Self-Check
 
 - Confirm the work path and auxiliary paths are identified.
-- Confirm the conda environment is known before any Python dependency installation; if unknown, ask the user first.
+- Confirm the runtime/dependency environment is specified before environment-dependent operations; if unknown, ask the user first.
+- Confirm the conda environment is known before any Python dependency installation, tests, scripts, or environment-specific commands; if unknown, ask the user first.
 - Confirm active code, deprecated old code, and read-only reference code are separated.
 - Confirm the core purpose, main logic, and important file responsibilities are summarized.
 - Confirm `README.md` exists or the reason for not writing it is stated.
