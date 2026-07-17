@@ -1,0 +1,7 @@
+interface:
+  display_name: "PPT模板-交大红"
+  short_description: "Create presentations with the PPT模板-交大红 template"
+  icon_large: "./assets/preview.png"
+  default_prompt: "Use $artifact-template-sjtu to create a new presentation with this template."
+policy:
+  allow_implicit_invocation: true
