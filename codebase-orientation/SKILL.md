@@ -1,96 +1,148 @@
 ---
 name: codebase-orientation
-description: Build or refresh a global understanding of a codebase from a user-provided work path, required runtime/dependency environment, and optional auxiliary/reference paths. Use when the user asks Codex to analyze a code path, understand a project before working, quickly understand from README.md, inspect whether README.md is outdated, distinguish active code from deprecated old code, treat auxiliary paths as read-only references, or confirm the Python conda/runtime environment before dependency work, tests, or execution.
+description: Build or refresh a reliable understanding of a codebase, component, or multi-repository workspace. Use when Codex needs to analyze a work path, active ProjectProfile selection, Git/GitHub provenance, Python runtime and PyCharm interpreter alignment, README freshness, entrypoints, tests, deprecated code, auxiliary references, reproducibility context, or current state after an authorized commit.
 ---
 
 # Codebase Orientation
 
-## Core Idea
+## Core Rule
 
-Use this skill when the user provides a code work path and optional auxiliary paths. First decide whether the user wants deep analysis or quick understanding, then build a reliable project mental model before doing downstream work.
+Establish the exact code and configuration being understood before interpreting its logic. Start read-only. Do not run project entrypoints, tests, dependency installation, Git mutations, or documentation edits merely to orient the codebase.
 
-Write reports and generated `README.md` content in the user's language unless they request otherwise.
+Write reports and requested documentation in the user's language.
 
-## Path Roles
+## 1. Identify the Scope
 
-- Treat the work path as the primary project to understand and the place where `README.md` should be created or updated.
-- Treat auxiliary paths as read-only reference paths by default. Read them to understand related designs, examples, APIs, or historical context, but do not modify them unless the user explicitly allows it.
-- Do not modify deprecated old code unless the user explicitly asks to work on it.
-- When a path role is ambiguous, infer conservatively from the user's wording and state the assumption briefly.
+Treat the supplied path as one of the following:
 
-## Project Environment
+- **Component**: a single repository or a versioned subproject.
+- **Workspace**: a directory coordinating multiple components.
+- **Auxiliary/reference path**: a dependency, historical version, dataset utility, vendor copy, or example supplied only for context.
 
-- Treat the target runtime/dependency environment as required context for codebase orientation when later dependency installation, tests, execution, notebooks, scripts, or generated commands may depend on it.
-- If the user has not specified the environment, ask them to specify it before performing environment-dependent operations.
-- When the project uses Python and the user has not explicitly named the current conda environment, ask the user to confirm which conda environment to use before installing Python packages or libraries, running tests, running scripts, or generating environment-specific commands.
-- After the user confirms the conda environment, perform all Python package and library installation for that project inside the confirmed environment.
-- Prefer environment-specific commands such as `conda run -n <env> python -m pip install ...` or activating the confirmed environment before installation.
-- Do not install Python dependencies into base, the system Python, or an inferred environment unless the user explicitly approves it.
-- If a repository file such as `environment.yml`, `conda.yml`, `requirements.txt`, or project documentation suggests an environment, mention it as evidence but still ask for confirmation when the user has not named the environment.
+Treat auxiliary paths as read-only unless the user explicitly authorizes changes. Do not deeply inspect deprecated versions, generated artifacts, caches, or vendored code unless the question depends on them.
 
-## Mode Selection
+## 2. Discover Profile and Git Context First
 
-- Use Deep Analysis Mode when the user says they want to analyze, review, inspect, summarize, build a global understanding, or first understand a path before doing later work.
-- Use Quick Understanding Mode when the user says they want to quickly understand, refresh context, resume work, or read the existing `README.md`.
-- If both modes are implied, start with Quick Understanding Mode only when a useful `README.md` already exists in the work path; otherwise use Deep Analysis Mode.
+Before choosing Quick or Deep mode, search the supplied path and its ancestors for:
 
-## Deep Analysis Mode
+```text
+profile/workspace.json
+profile/component.json
+active_profile.json
+.git
+third_party/lock-*.json
+patches/third_party/
+```
 
-Perform a broad but targeted codebase survey before starting downstream implementation.
+If a `profile/workspace.json` is present:
 
-1. Inspect the work path structure with fast file discovery such as `rg --files`.
-2. Read existing project documentation, configuration, package metadata, build scripts, entrypoints, and representative source files.
-3. Identify the project's core purpose and main technical idea.
-4. Identify how the main files and modules jointly form the primary logic.
-5. Summarize each important code file's task, responsibility, and relationship to the rest of the project.
-6. Identify deprecated or abandoned old code. Use evidence such as directory names, filenames, comments, import absence, duplicate older implementations, backup/archive markers, and user-provided hints.
-7. Identify read-only reference code, especially code under auxiliary paths or work-path folders that are clearly examples, references, vendor copies, or external snapshots.
-8. Create or update `README.md` in the work path with the distilled understanding.
-9. Report the global understanding to the user before continuing to later work.
+1. Read its component list and Active directory definition.
+2. Resolve the current Active links or state record.
+3. Treat selected Active components as the primary code to understand.
+4. Treat sibling versions that are not selected as historical or candidate references.
 
-Do not analyze deprecated old code deeply. Mention it as excluded, with the evidence for exclusion. Analyze read-only reference code only enough to understand what it contributes.
+If a `profile/component.json` is present, record its identity, version, logical runtime key, IDE roots, entrypoints, generated artifacts, and third-party roots. Do not assume a particular ProjectProfile schema or component name; report fields that are absent as unknown.
 
-## Quick Understanding Mode
+For every primary repository, collect read-only Git evidence: root, branch, HEAD, nearest tag or describe value, short status, and sanitized remote names/URLs when present. A dirty worktree means conclusions apply to the working tree rather than solely to a committed baseline.
 
-Use the existing `README.md` as the first source of truth, then verify it against the current code.
+When a profile or multi-repository workspace is found, read [references/project-profile-and-git.md](references/project-profile-and-git.md). Use `scripts/collect_orientation_context.py` when a deterministic JSON inventory will improve accuracy. The script uses only the Python standard library and read-only Git commands, so it may run with `conda run -n codex-tools` without confirming a project runtime.
 
-1. Read `README.md` from the work path first.
-2. Inspect the current file tree and key files that README claims are important.
-3. Check whether the README appears stale by comparing it with current entrypoints, major modules, config files, dependency files, and obvious renamed or removed files.
-4. Read enough current code to verify the core purpose, main logic, active modules, deprecated code boundaries, and read-only reference boundaries.
-5. Report a compact refreshed understanding to the user.
-6. If the README is stale, clearly state what is outdated. Update it only when the user asks, or when the stale facts are straightforward and the user has not restricted edits.
+## 3. Establish Reading Boundaries
 
-Keep Quick Understanding Mode fast. Do not perform a full file-by-file audit unless the README is missing, very stale, or the user requests deeper analysis.
+Use profile and Git evidence to classify paths before reading source:
 
-## README.md Content
+- **Active code**: selected component roots, declared source roots, entrypoints, and relevant tests.
+- **Generated/ignored content**: Excluded folders, generated artifacts, logs, checkpoints, outputs, and caches. Confirm their purpose but do not inventory them.
+- **Third-party/reference code**: declared vendor roots, submodules, external snapshots, and locked dependencies. Identify contribution and version state without deep code reading by default.
+- **Historical/candidate versions**: non-Active sibling versions. Read only profile, Git, README, and a minimal structural summary unless explicitly requested.
 
-When creating or updating the work-path `README.md`, include these sections unless a local README structure already exists and should be preserved:
+`Excluded` affects IDE indexing only. `.gitignore` and Git status determine version-control state. Do not conflate either with Python runtime importability.
 
-- Project Purpose: the project's core goal and main idea.
-- Project Environment: the specified or inferred runtime/dependency environment, and whether user confirmation is still required.
-- Main Workflow: how the code pieces work together end to end.
-- Active Code Map: important files or folders and each one's task.
-- Deprecated Or Ignored Code: old code that should not be changed or analyzed by default, with evidence.
-- Read-Only Reference Code: auxiliary or reference paths that should be read but not edited.
-- How To Resume Quickly: the shortest path for a future agent to re-understand the project.
+## 4. Verify Python and PyCharm Interpreter Alignment
 
-Keep the README concise but specific. Prefer dense, practical orientation notes over generic project marketing text.
+Read logical runtime identifiers from Profile first. When a workspace maps environment keys to local paths, distinguish the portable logical key from the machine-local interpreter path.
 
-## Boundaries
+For a PyCharm workspace, compare the following evidence in order:
 
-- Do not start implementation or refactoring before reporting the orientation when the user requested analysis first.
-- Preserve existing useful README content when updating; reorganize only enough to make future understanding faster.
-- Do not overwrite user-authored project documentation blindly. Merge, update, or add an orientation section when a README already exists.
-- Mark uncertainty explicitly when code evidence is incomplete.
-- Prefer absolute paths in reports when distinguishing work and auxiliary paths.
+1. `profile/workspace.json`: `default_environment_key` when explicitly declared, then `environment_templates`.
+2. Every Active component `profile/component.json`: its `runtime.environment_key`.
+3. PyCharm project SDK: `.idea/misc.xml` → `ProjectRootManager`.
+4. PyCharm module SDK: the Active `.iml` → `NewModuleRootManager` → `orderEntry type="jdk"`.
+5. Shared Run/Debug configurations: explicit SDK, module SDK, shell interpreter, and relevant runtime variables such as `ENV_ROOT` or `PYTHON_BIN`.
+6. The local PyCharm SDK registry, when available, only to verify that an SDK name resolves to the expected executable.
+
+Use `scripts/collect_orientation_context.py` to produce this comparison. Report each result as `aligned`, `mismatch`, `unverified`, `shared`, or `missing`; do not infer a missing Profile default from the current PyCharm setting.
+
+The project SDK is only a fallback. A module SDK or an explicit Run/Debug interpreter may intentionally differ. Treat a difference as a mismatch only when it conflicts with the Profile environment declared for that module or configuration.
+
+`codebase-orientation` is read-only: it verifies and reports alignment but never edits `.idea`, global PyCharm SDK records, or Profile files. When a correction is authorized, use the ProjectProfile synchronization workflow as the writer, then run this Skill again to verify the result.
+
+Before running project scripts, tests, notebooks, or installing packages:
+
+1. Report the recommended logical environment and supporting evidence.
+2. Ask the user to confirm the actual Conda/interpreter environment if it is not explicitly known.
+3. Use the confirmed environment only; never install into base, system Python, or an inferred environment.
+
+Do not expose secrets from ignored local environment files, environment variables, remote URLs, or configuration files.
+
+## 5. Refresh After an Authorized Commit
+
+This skill remains read-only. When an authorized downstream workflow has just committed changes, start a fresh Quick Mode pass rather than relying on earlier Git state. Re-read the Profile/Active selection and collect the current branch, HEAD, tag/describe value, remaining dirty state, and third-party lock evidence.
+
+Report the refreshed evidence as the current project understanding. Do not stage, commit, push, or write a persistent project journal from this skill; update project documentation only with separate user authorization.
+
+## 6. Choose Analysis Depth
+
+### Quick Understanding Mode
+
+Use when the user asks to refresh context, resume work, inspect README freshness, or quickly identify the active project.
+
+1. Read README, Profile/Git context, and Python/PyCharm alignment first.
+2. Inspect current entrypoints, package metadata, top-level source, and relevant tests.
+3. Compare README claims with current paths, Active selection, Git status, and entrypoints.
+4. Report a compact code map, reproducibility context, stale documentation, and remaining uncertainty.
+
+Do not perform a full file-by-file audit.
+
+### Deep Analysis Mode
+
+Use when the user asks to deeply analyze, review, summarize, or build global understanding before later work.
+
+1. Complete Quick Mode context discovery, including Python/PyCharm alignment.
+2. Inspect the active project tree using fast discovery such as `rg --files`.
+3. Read documentation, package metadata, build scripts, configurations, entrypoints, representative source, and relevant tests.
+4. Identify purpose, main technical idea, data/control flow, major modules, and external boundaries.
+5. Separate active code, deprecated code, generated content, third-party/reference code, and historical versions with evidence.
+6. Report the orientation before beginning downstream implementation.
+
+## 7. Report Format
+
+Include the following when evidence exists:
+
+1. **Scope and reproducibility context**: workspace/component path, Active selection, profile path and version, Git branch/HEAD/tag/dirty state, logical runtime, entrypoints, and third-party lock state.
+2. **Interpreter alignment**: Profile default/runtime key, project SDK, Active module SDKs, relevant Run/Debug overrides, registration evidence, and every mismatch or unverified field.
+3. **Purpose and main workflow**: what the active code does and how major components interact.
+4. **Active code map**: important folders/files and their responsibilities.
+5. **Boundaries**: deprecated, generated, excluded, third-party, and read-only reference paths.
+6. **Documentation assessment**: README facts verified, stale facts, and missing operational information.
+7. **Readiness and uncertainty**: what can safely happen next, what needs environment confirmation, and what requires user direction.
+
+Use absolute paths when they help disambiguate multiple versions. State whether a conclusion applies to the clean baseline or a dirty working tree.
+
+## 8. Documentation and Safety Boundaries
+
+- Default to reporting stale README facts; update README only when the user asks to edit documentation or explicitly authorizes the update.
+- Preserve useful user-authored documentation when authorized to edit it.
+- Do not switch branches, pull, push, commit, stage files, clean a worktree, update submodules, or modify third-party code during orientation.
+- Do not start implementation or refactoring before delivering the requested orientation report.
 
 ## Final Self-Check
 
-- Confirm the work path and auxiliary paths are identified.
-- Confirm the runtime/dependency environment is specified before environment-dependent operations; if unknown, ask the user first.
-- Confirm the conda environment is known before any Python dependency installation, tests, scripts, or environment-specific commands; if unknown, ask the user first.
-- Confirm active code, deprecated old code, and read-only reference code are separated.
-- Confirm the core purpose, main logic, and important file responsibilities are summarized.
-- Confirm `README.md` exists or the reason for not writing it is stated.
-- Confirm the user receives the orientation report before downstream work begins.
+- Confirm scope and path roles.
+- When present, confirm profile/Active selection, Git evidence, entrypoints, and third-party lock state.
+- Confirm that Active, historical, generated, third-party, and auxiliary boundaries are separated.
+- Confirm the runtime is only used after user confirmation for environment-dependent work.
+- Confirm Profile runtime, PyCharm project/module SDKs, and relevant Run/Debug overrides were compared when available.
+- Confirm no secrets or local-only absolute state are exposed.
+- Confirm the user receives an evidence-backed orientation report before downstream work.
+- After an authorized commit, confirm the report records new Git evidence and any intentionally remaining changes.
