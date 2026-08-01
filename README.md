@@ -21,13 +21,13 @@ Restart Codex after changing `CODEX_HOME`.
 
 Tracked custom skills:
 
-- `academic-paper-writing`
-- `codebase-orientation`
-- `hatch-pet`
-- `pdf`
-- `playwright`
-- `python-code-style`
-- `sync-skills-to-github`
+- Project understanding and maintenance: `ai-project-guide`,
+  `codebase-orientation`, `commit-and-orient`, `find-skills`,
+  `planning-with-files`, and `sync-skills-to-github`.
+- Writing and document work: `academic-paper-writing`, `humanizer`,
+  `humanizer-zh`, `pdf`, and `python-code-style`.
+- Visual and browser workflows: `artifact-template-sjtu`, `hatch-pet`, and
+  `playwright`.
 
 Not tracked:
 
@@ -118,6 +118,10 @@ Before committing, validate changed skills when practical:
 ```powershell
 python $env:USERPROFILE\.codex\skills\.system\skill-creator\scripts\quick_validate.py $env:USERPROFILE\.codex\skills\<skill-name>
 ```
+
+`humanizer` and `planning-with-files` retain upstream Claude-oriented
+frontmatter. Their scripts and package files are versioned here, but the strict
+Codex validator currently reports the upstream-only metadata keys.
 
 On this Windows machine, keep `SKILL.md` content ASCII-only unless non-ASCII is
 necessary. Some local validation paths can read files with a non-UTF-8 default

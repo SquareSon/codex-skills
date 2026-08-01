@@ -1,0 +1,566 @@
+{
+  "schema": "ai-project-context/v4",
+  "scope": "shard",
+  "authority_order": [
+    "active",
+    "profile",
+    "git",
+    "source",
+    "context"
+  ],
+  "reference_catalog": {
+    "repo.readme": {
+      "scope": "component",
+      "component": "skills",
+      "path": "README.md"
+    },
+    "planning.skill": {
+      "scope": "component",
+      "component": "skills",
+      "path": "planning-with-files/SKILL.md"
+    },
+    "planning.session": {
+      "scope": "component",
+      "component": "skills",
+      "path": "planning-with-files/scripts/session-catchup.py"
+    },
+    "planning.doctor": {
+      "scope": "component",
+      "component": "skills",
+      "path": "planning-with-files/scripts/plan-doctor.sh"
+    },
+    "planning.task_template": {
+      "scope": "component",
+      "component": "skills",
+      "path": "planning-with-files/templates/task_plan.md"
+    },
+    "planning.progress_template": {
+      "scope": "component",
+      "component": "skills",
+      "path": "planning-with-files/templates/progress.md"
+    },
+    "planning.findings_template": {
+      "scope": "component",
+      "component": "skills",
+      "path": "planning-with-files/templates/findings.md"
+    },
+    "academic.skill": {
+      "scope": "component",
+      "component": "skills",
+      "path": "academic-paper-writing/SKILL.md"
+    },
+    "humanizer.en": {
+      "scope": "component",
+      "component": "skills",
+      "path": "humanizer/SKILL.md"
+    },
+    "humanizer.zh": {
+      "scope": "component",
+      "component": "skills",
+      "path": "humanizer-zh/SKILL.md"
+    },
+    "pdf.skill": {
+      "scope": "component",
+      "component": "skills",
+      "path": "pdf/SKILL.md"
+    },
+    "python.style": {
+      "scope": "component",
+      "component": "skills",
+      "path": "python-code-style/SKILL.md"
+    },
+    "artifact.skill": {
+      "scope": "component",
+      "component": "skills",
+      "path": "artifact-template-sjtu/SKILL.md"
+    },
+    "artifact.manifest": {
+      "scope": "component",
+      "component": "skills",
+      "path": "artifact-template-sjtu/artifact-template.json"
+    },
+    "pet.skill": {
+      "scope": "component",
+      "component": "skills",
+      "path": "hatch-pet/SKILL.md"
+    },
+    "pet.contract": {
+      "scope": "component",
+      "component": "skills",
+      "path": "hatch-pet/references/codex-pet-contract.md"
+    },
+    "pet.prepare": {
+      "scope": "component",
+      "component": "skills",
+      "path": "hatch-pet/scripts/prepare_pet_run.py"
+    },
+    "pet.validate": {
+      "scope": "component",
+      "component": "skills",
+      "path": "hatch-pet/scripts/validate_atlas.py"
+    },
+    "playwright.skill": {
+      "scope": "component",
+      "component": "skills",
+      "path": "playwright/SKILL.md"
+    },
+    "playwright.wrapper": {
+      "scope": "component",
+      "component": "skills",
+      "path": "playwright/scripts/playwright_cli.sh"
+    },
+    "find.skill": {
+      "scope": "component",
+      "component": "skills",
+      "path": "find-skills/SKILL.md"
+    }
+  },
+  "summary": {
+    "purpose": "Route specialized planning, authoring, visual-asset, browser, and Skill-discovery work to the relevant package.",
+    "architecture": [
+      "Instruction-only authoring Skills coexist with script-backed planning, browser, and visual workflows.",
+      "Each route starts from its SKILL.md and expands into scripts, assets, references, and external interfaces as required."
+    ],
+    "key_flows": [
+      {
+        "id": "planning-flow",
+        "summary": "Templates become project-local planning state consumed by recovery and diagnostic scripts.",
+        "route_ids": [
+          "persist-task-plan"
+        ],
+        "evidence_refs": [
+          "planning.skill",
+          "planning.session"
+        ],
+        "confidence": "confirmed"
+      },
+      {
+        "id": "authoring-flow",
+        "summary": "Task intent selects academic, humanization, PDF, or Python guidance.",
+        "route_ids": [
+          "author-documents"
+        ],
+        "evidence_refs": [
+          "academic.skill",
+          "humanizer.zh",
+          "pdf.skill"
+        ],
+        "confidence": "confirmed"
+      },
+      {
+        "id": "visual-flow",
+        "summary": "Template or generation inputs become presentation or pet artifacts with validation.",
+        "route_ids": [
+          "build-visual-assets"
+        ],
+        "evidence_refs": [
+          "artifact.skill",
+          "pet.skill"
+        ],
+        "confidence": "confirmed"
+      },
+      {
+        "id": "tool-flow",
+        "summary": "Wrapper and discovery Skills connect browser automation and external Skill search.",
+        "route_ids": [
+          "automate-browser",
+          "discover-skills"
+        ],
+        "evidence_refs": [
+          "playwright.skill",
+          "find.skill"
+        ],
+        "confidence": "confirmed"
+      }
+    ]
+  },
+  "hierarchy": {
+    "role": "semantic_shard",
+    "child_contexts": [],
+    "shard_contexts": []
+  },
+  "bootstrap": {
+    "read_before_code": [
+      "repo.readme",
+      "planning.skill",
+      "academic.skill",
+      "pet.skill",
+      "playwright.skill"
+    ],
+    "active_components": [
+      "skills"
+    ]
+  },
+  "components": [
+    {
+      "id": "skills",
+      "role": "Specialized user-facing Skill workflows",
+      "locator": {
+        "kind": "relative",
+        "path": "."
+      },
+      "profile_ref": null,
+      "runtime_key": null,
+      "source_refs": [
+        "planning.skill",
+        "academic.skill",
+        "artifact.skill",
+        "pet.skill",
+        "playwright.skill",
+        "find.skill"
+      ],
+      "entrypoint_refs": [
+        "planning.skill",
+        "academic.skill",
+        "humanizer.en",
+        "humanizer.zh",
+        "pdf.skill",
+        "python.style",
+        "artifact.skill",
+        "pet.skill",
+        "playwright.skill",
+        "find.skill"
+      ]
+    }
+  ],
+  "task_routes": [
+    {
+      "id": "persist-task-plan",
+      "intent": "persist and recover a multi-step task plan across sessions",
+      "components": [
+        "skills"
+      ],
+      "attention_refs": [
+        "planning.skill",
+        "planning.session",
+        "planning.doctor"
+      ],
+      "expand": [
+        "callees",
+        "data_contracts",
+        "tests",
+        "interfaces"
+      ],
+      "semantic_nodes": [
+        "planning.file-flow"
+      ],
+      "contract_ids": [
+        "planning-files"
+      ],
+      "required_evidence": [
+        "planning.task_template",
+        "planning.progress_template",
+        "planning.findings_template"
+      ],
+      "completion_rule": "all_required_evidence_or_explicit_gap"
+    },
+    {
+      "id": "author-documents",
+      "intent": "write, polish, humanize, or validate academic, PDF, or Python content",
+      "components": [
+        "skills"
+      ],
+      "attention_refs": [
+        "academic.skill",
+        "humanizer.zh",
+        "humanizer.en",
+        "pdf.skill",
+        "python.style"
+      ],
+      "expand": [
+        "configuration",
+        "interfaces"
+      ],
+      "semantic_nodes": [
+        "content.authoring-suite"
+      ],
+      "contract_ids": [],
+      "required_evidence": [
+        "academic.skill",
+        "humanizer.zh",
+        "pdf.skill"
+      ],
+      "completion_rule": "all_required_evidence_or_explicit_gap"
+    },
+    {
+      "id": "build-visual-assets",
+      "intent": "create an SJTU presentation or generate and validate a Codex pet",
+      "components": [
+        "skills"
+      ],
+      "attention_refs": [
+        "artifact.skill",
+        "pet.skill",
+        "pet.contract"
+      ],
+      "expand": [
+        "callees",
+        "configuration",
+        "data_contracts",
+        "tests",
+        "interfaces"
+      ],
+      "semantic_nodes": [
+        "visual.asset-flow"
+      ],
+      "contract_ids": [
+        "pet-atlas"
+      ],
+      "required_evidence": [
+        "artifact.manifest",
+        "pet.prepare",
+        "pet.validate"
+      ],
+      "completion_rule": "all_required_evidence_or_explicit_gap"
+    },
+    {
+      "id": "automate-browser",
+      "intent": "automate, inspect, or debug a browser workflow",
+      "components": [
+        "skills"
+      ],
+      "attention_refs": [
+        "playwright.skill",
+        "playwright.wrapper"
+      ],
+      "expand": [
+        "callees",
+        "configuration",
+        "interfaces"
+      ],
+      "semantic_nodes": [
+        "browser.wrapper-flow"
+      ],
+      "contract_ids": [],
+      "required_evidence": [
+        "playwright.wrapper"
+      ],
+      "completion_rule": "all_required_evidence_or_explicit_gap"
+    },
+    {
+      "id": "discover-skills",
+      "intent": "find and evaluate an installable Skill",
+      "components": [
+        "skills"
+      ],
+      "attention_refs": [
+        "find.skill"
+      ],
+      "expand": [
+        "configuration",
+        "interfaces"
+      ],
+      "semantic_nodes": [
+        "discovery.install-flow"
+      ],
+      "contract_ids": [],
+      "required_evidence": [
+        "find.skill"
+      ],
+      "completion_rule": "all_required_evidence_or_explicit_gap"
+    }
+  ],
+  "contracts": [
+    {
+      "id": "planning-files",
+      "summary": "Planning instructions instantiate task, progress, and findings templates consumed by recovery and diagnostics.",
+      "producer_refs": [
+        "planning.skill"
+      ],
+      "artifact_refs": [
+        "planning.task_template",
+        "planning.progress_template",
+        "planning.findings_template"
+      ],
+      "consumer_refs": [
+        "planning.session",
+        "planning.doctor"
+      ],
+      "validator_refs": [
+        "planning.doctor"
+      ],
+      "test_refs": [],
+      "confidence": "confirmed"
+    },
+    {
+      "id": "pet-atlas",
+      "summary": "Pet preparation creates a manifest-driven run whose atlas output is checked against the Codex pet contract.",
+      "producer_refs": [
+        "pet.skill",
+        "pet.prepare"
+      ],
+      "artifact_refs": [
+        "pet.contract"
+      ],
+      "consumer_refs": [
+        "pet.validate"
+      ],
+      "validator_refs": [
+        "pet.validate"
+      ],
+      "test_refs": [],
+      "confidence": "confirmed"
+    }
+  ],
+  "semantic_nodes": [
+    {
+      "id": "planning.file-flow",
+      "kind": "data_flow",
+      "claim": "Planning-with-files creates project-local task, findings, and progress artifacts consumed by recovery and diagnostic scripts.",
+      "evidence_refs": [
+        "planning.skill",
+        "planning.session"
+      ],
+      "depends_on": [],
+      "confidence": "confirmed"
+    },
+    {
+      "id": "content.authoring-suite",
+      "kind": "architecture",
+      "claim": "Academic writing, bilingual humanization, PDF handling, and Python style provide complementary authoring guidance.",
+      "evidence_refs": [
+        "academic.skill",
+        "humanizer.zh",
+        "pdf.skill",
+        "python.style"
+      ],
+      "depends_on": [],
+      "confidence": "confirmed"
+    },
+    {
+      "id": "visual.asset-flow",
+      "kind": "data_flow",
+      "claim": "The SJTU template retains presentation assets, while hatch-pet prepares and validates Codex pet atlases.",
+      "evidence_refs": [
+        "artifact.skill",
+        "pet.skill",
+        "pet.contract",
+        "pet.validate"
+      ],
+      "depends_on": [],
+      "confidence": "confirmed"
+    },
+    {
+      "id": "browser.wrapper-flow",
+      "kind": "interface",
+      "claim": "The Playwright Skill routes browser automation through its CODEX_HOME-relative CLI wrapper.",
+      "evidence_refs": [
+        "playwright.skill",
+        "playwright.wrapper"
+      ],
+      "depends_on": [],
+      "confidence": "confirmed"
+    },
+    {
+      "id": "discovery.install-flow",
+      "kind": "control_flow",
+      "claim": "Find-skills searches external catalogs and presents vetted installation choices.",
+      "evidence_refs": [
+        "find.skill"
+      ],
+      "depends_on": [],
+      "confidence": "confirmed"
+    }
+  ],
+  "experiment_provenance": {
+    "path_ref": null,
+    "required_states": [
+      "implemented",
+      "configured",
+      "executed",
+      "reported"
+    ]
+  },
+  "do_not_assume": [
+    "Instruction text does not prove external tools, runtimes, or credentials are available.",
+    "Bash and Python checks do not prove equivalent PowerShell or Windows behavior.",
+    "Generated presentation, pet, browser, or planning artifacts are project outputs, not repository source."
+  ],
+  "boundaries": {
+    "policy_source": "repository.layout",
+    "overrides": []
+  },
+  "refresh": {
+    "profile_fingerprint": null,
+    "active_fingerprint": null,
+    "semantic_fingerprints": [
+      {
+        "semantic_node": "planning.file-flow",
+        "evidence": [
+          {
+            "ref": "planning.skill",
+            "sha256": "sha256:b479774b22b75a294a0590a9cc1f246962108a02a8f60bdc4b23c1914e381e61"
+          },
+          {
+            "ref": "planning.session",
+            "sha256": "sha256:6476fd9024d0cbb9bfb850119fd0beff7fb7cfab9c6683ce10e4cc8d830ce6de"
+          }
+        ]
+      },
+      {
+        "semantic_node": "content.authoring-suite",
+        "evidence": [
+          {
+            "ref": "academic.skill",
+            "sha256": "sha256:b4098c14c4d86040c0c475a4a5f97bd568cd695d6fb8d46e0e430b8c96d783d3"
+          },
+          {
+            "ref": "humanizer.zh",
+            "sha256": "sha256:e0edbdbc9008644263d5573fb59beac95794e188fd99c35012bfd79e9ae4beeb"
+          },
+          {
+            "ref": "pdf.skill",
+            "sha256": "sha256:d108cf2b36355ab37eb5962933f4d09785ec002f3105c506129320209306b9d2"
+          },
+          {
+            "ref": "python.style",
+            "sha256": "sha256:f6c5d27e1ce56e9f459c2b13a4e2105defbb38dabf22717ab34fe12ad2e8de91"
+          }
+        ]
+      },
+      {
+        "semantic_node": "visual.asset-flow",
+        "evidence": [
+          {
+            "ref": "artifact.skill",
+            "sha256": "sha256:205e913e683156b4fa0053bec94d11484355abbc37364ff37d3432a5660fe6d9"
+          },
+          {
+            "ref": "pet.skill",
+            "sha256": "sha256:7ab0f01e8561085d1b494a6ca74abed766c655da8ec98284fb38a362c19d6871"
+          },
+          {
+            "ref": "pet.contract",
+            "sha256": "sha256:ce9a9d2cef4d9cdb16c3ae53c106681d98b8ae3919a56fe74323f6f88a06f90d"
+          },
+          {
+            "ref": "pet.validate",
+            "sha256": "sha256:649a9a242d171da032de0cab1744f11629db3a2c88253fd3215e1a1174c29465"
+          }
+        ]
+      },
+      {
+        "semantic_node": "browser.wrapper-flow",
+        "evidence": [
+          {
+            "ref": "playwright.skill",
+            "sha256": "sha256:0ffaabcc8e0990627c4725f18bf1c7955534a796c1c199e872909de2013ce6a8"
+          },
+          {
+            "ref": "playwright.wrapper",
+            "sha256": "sha256:aa3fdff5d0e4556177f4dfd5f04117e772aa54f94b6a2e34b6c0edf629c6b9b5"
+          }
+        ]
+      },
+      {
+        "semantic_node": "discovery.install-flow",
+        "evidence": [
+          {
+            "ref": "find.skill",
+            "sha256": "sha256:c00eeea0e13e74fe4a9d84ba0a8542205a1b736d65f13134fe1a6647eb14976f"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,502 @@
+{
+  "schema": "ai-project-context/v4",
+  "scope": "component",
+  "authority_order": [
+    "active",
+    "profile",
+    "git",
+    "source",
+    "context"
+  ],
+  "reference_catalog": {
+    "repo.readme": {
+      "scope": "component",
+      "component": "skills",
+      "path": "README.md"
+    },
+    "repo.gitignore": {
+      "scope": "component",
+      "component": "skills",
+      "path": ".gitignore"
+    },
+    "context.skill": {
+      "scope": "component",
+      "component": "skills",
+      "path": "ai-project-guide/SKILL.md"
+    },
+    "context.schema": {
+      "scope": "component",
+      "component": "skills",
+      "path": "ai-project-guide/references/ai-context-schema.md"
+    },
+    "context.validator": {
+      "scope": "component",
+      "component": "skills",
+      "path": "ai-project-guide/scripts/validate_ai_context.py"
+    },
+    "context.tests": {
+      "scope": "component",
+      "component": "skills",
+      "path": "ai-project-guide/scripts/test_validators.py"
+    },
+    "orientation.skill": {
+      "scope": "component",
+      "component": "skills",
+      "path": "codebase-orientation/SKILL.md"
+    },
+    "orientation.collector": {
+      "scope": "component",
+      "component": "skills",
+      "path": "codebase-orientation/scripts/collect_orientation_context.py"
+    },
+    "orientation.bundle": {
+      "scope": "component",
+      "component": "skills",
+      "path": "codebase-orientation/scripts/build_orientation_bundle.py"
+    },
+    "orientation.tests": {
+      "scope": "component",
+      "component": "skills",
+      "path": "codebase-orientation/scripts/test_orientation_tools.py"
+    },
+    "commit.skill": {
+      "scope": "component",
+      "component": "skills",
+      "path": "commit-and-orient/SKILL.md"
+    },
+    "commit.plan_schema": {
+      "scope": "component",
+      "component": "skills",
+      "path": "commit-and-orient/references/commit-plan-schema.md"
+    },
+    "commit.helper": {
+      "scope": "component",
+      "component": "skills",
+      "path": "commit-and-orient/scripts/commit_scoped_changes.py"
+    },
+    "commit.tests": {
+      "scope": "component",
+      "component": "skills",
+      "path": "commit-and-orient/tests/test_commit_scoped_changes.py"
+    },
+    "sync.skill": {
+      "scope": "component",
+      "component": "skills",
+      "path": "sync-skills-to-github/SKILL.md"
+    },
+    "context.workflows": {
+      "scope": "component",
+      "component": "skills",
+      "path": "docs/ai-guide/workflows.AI_CONTEXT.json"
+    }
+  },
+  "summary": {
+    "purpose": "Version and share portable user-scoped Codex Skills while excluding system and machine-local runtime state.",
+    "architecture": [
+      "The standalone repository contains one Skill package per directory and has no ProjectProfile or Active selection.",
+      "The component leaf owns repository maintenance; a workflows shard owns specialized task Skills.",
+      "Orientation, Context maintenance, scoped commits, and opt-in synchronization form the maintenance chain."
+    ],
+    "key_flows": [
+      {
+        "id": "context-flow",
+        "summary": "Orientation gathers source evidence; ai-project-guide writes and validates durable Context.",
+        "route_ids": [
+          "maintain-context"
+        ],
+        "evidence_refs": [
+          "orientation.skill",
+          "context.skill"
+        ],
+        "confidence": "confirmed"
+      },
+      {
+        "id": "commit-flow",
+        "summary": "Exact changes become an approved local commit plan and only separately authorized synchronization.",
+        "route_ids": [
+          "commit-local-changes"
+        ],
+        "evidence_refs": [
+          "commit.helper",
+          "sync.skill"
+        ],
+        "confidence": "confirmed"
+      },
+      {
+        "id": "workflow-routing",
+        "summary": "Specialized writing, planning, visual, browser, and discovery routes live in the workflows shard.",
+        "route_ids": [
+          "use-specialized-workflow"
+        ],
+        "evidence_refs": [
+          "context.workflows"
+        ],
+        "confidence": "confirmed"
+      }
+    ]
+  },
+  "hierarchy": {
+    "role": "component_leaf",
+    "child_contexts": [],
+    "shard_contexts": [
+      {
+        "id": "workflows",
+        "context_ref": "context.workflows"
+      }
+    ]
+  },
+  "bootstrap": {
+    "read_before_code": [
+      "repo.readme",
+      "orientation.skill",
+      "context.skill",
+      "commit.skill",
+      "sync.skill"
+    ],
+    "active_components": [
+      "skills"
+    ]
+  },
+  "components": [
+    {
+      "id": "skills",
+      "role": "Versioned collection of user-scoped Codex Skill packages",
+      "locator": {
+        "kind": "relative",
+        "path": "."
+      },
+      "profile_ref": null,
+      "runtime_key": null,
+      "source_refs": [
+        "repo.readme",
+        "context.skill",
+        "orientation.skill",
+        "commit.skill",
+        "context.workflows"
+      ],
+      "entrypoint_refs": [
+        "context.skill",
+        "orientation.skill",
+        "commit.skill",
+        "sync.skill"
+      ]
+    }
+  ],
+  "task_routes": [
+    {
+      "id": "maintain-skill",
+      "intent": "add, update, validate, or catalog a Codex Skill",
+      "components": [
+        "skills"
+      ],
+      "attention_refs": [
+        "repo.readme",
+        "commit.skill",
+        "sync.skill"
+      ],
+      "expand": [
+        "configuration",
+        "tests",
+        "interfaces"
+      ],
+      "semantic_nodes": [
+        "catalog.layout",
+        "catalog.upstream-compatibility"
+      ],
+      "contract_ids": [],
+      "required_evidence": [
+        "repo.readme",
+        "repo.gitignore"
+      ],
+      "completion_rule": "all_required_evidence_or_explicit_gap"
+    },
+    {
+      "id": "maintain-context",
+      "intent": "orient a codebase or create, refresh, and validate AI Context",
+      "components": [
+        "skills"
+      ],
+      "attention_refs": [
+        "orientation.skill",
+        "context.skill",
+        "context.schema"
+      ],
+      "expand": [
+        "callers",
+        "callees",
+        "configuration",
+        "tests",
+        "interfaces"
+      ],
+      "semantic_nodes": [
+        "context.orientation-flow"
+      ],
+      "contract_ids": [
+        "orientation-context"
+      ],
+      "required_evidence": [
+        "context.validator",
+        "context.tests",
+        "orientation.tests"
+      ],
+      "completion_rule": "all_required_evidence_or_explicit_gap"
+    },
+    {
+      "id": "commit-local-changes",
+      "intent": "split, approve, execute, and audit local Git commits or decide whether to synchronize them",
+      "components": [
+        "skills"
+      ],
+      "attention_refs": [
+        "commit.skill",
+        "commit.plan_schema",
+        "commit.helper",
+        "sync.skill"
+      ],
+      "expand": [
+        "callees",
+        "configuration",
+        "tests",
+        "interfaces"
+      ],
+      "semantic_nodes": [
+        "git.scoped-commit-flow",
+        "git.sync-gate"
+      ],
+      "contract_ids": [
+        "sealed-commit-plan"
+      ],
+      "required_evidence": [
+        "commit.tests",
+        "sync.skill"
+      ],
+      "completion_rule": "all_required_evidence_or_explicit_gap"
+    },
+    {
+      "id": "use-specialized-workflow",
+      "intent": "plan, write, create visual assets, automate a browser, or discover a Skill",
+      "components": [
+        "skills"
+      ],
+      "attention_refs": [
+        "context.workflows"
+      ],
+      "expand": [
+        "interfaces"
+      ],
+      "semantic_nodes": [
+        "catalog.layout"
+      ],
+      "contract_ids": [],
+      "required_evidence": [
+        "context.workflows"
+      ],
+      "completion_rule": "all_required_evidence_or_explicit_gap"
+    }
+  ],
+  "contracts": [
+    {
+      "id": "orientation-context",
+      "summary": "ai-project-guide produces the v4 contract consumed by orientation inventory and Bundles.",
+      "producer_refs": [
+        "context.skill"
+      ],
+      "artifact_refs": [
+        "context.schema"
+      ],
+      "consumer_refs": [
+        "orientation.skill",
+        "orientation.collector",
+        "orientation.bundle"
+      ],
+      "validator_refs": [
+        "context.validator"
+      ],
+      "test_refs": [
+        "context.tests",
+        "orientation.tests"
+      ],
+      "confidence": "confirmed"
+    },
+    {
+      "id": "sealed-commit-plan",
+      "summary": "An approved JSON plan binds exact paths and file states before the helper stages and commits them.",
+      "producer_refs": [
+        "commit.skill"
+      ],
+      "artifact_refs": [
+        "commit.plan_schema"
+      ],
+      "consumer_refs": [
+        "commit.helper"
+      ],
+      "validator_refs": [
+        "commit.helper"
+      ],
+      "test_refs": [
+        "commit.tests"
+      ],
+      "confidence": "confirmed"
+    }
+  ],
+  "semantic_nodes": [
+    {
+      "id": "catalog.layout",
+      "kind": "architecture",
+      "claim": "Tracked user Skills are independent directories centered on SKILL.md; system, cache, session, and machine-local state stays outside Git.",
+      "evidence_refs": [
+        "repo.readme",
+        "repo.gitignore"
+      ],
+      "depends_on": [],
+      "confidence": "confirmed"
+    },
+    {
+      "id": "catalog.upstream-compatibility",
+      "kind": "invariant",
+      "claim": "Humanizer and planning-with-files retain upstream metadata that the strict local Codex Skill validator does not accept.",
+      "evidence_refs": [
+        "repo.readme"
+      ],
+      "depends_on": [
+        "catalog.layout"
+      ],
+      "confidence": "confirmed"
+    },
+    {
+      "id": "context.orientation-flow",
+      "kind": "control_flow",
+      "claim": "Codebase-orientation discovers and reads Context; ai-project-guide owns explicit v4 creation, restructuring, and validation.",
+      "evidence_refs": [
+        "context.skill",
+        "context.schema",
+        "orientation.skill",
+        "orientation.collector",
+        "orientation.bundle"
+      ],
+      "depends_on": [
+        "catalog.layout"
+      ],
+      "confidence": "confirmed"
+    },
+    {
+      "id": "git.scoped-commit-flow",
+      "kind": "control_flow",
+      "claim": "Commit-and-orient seals exact file states, preflights a temporary index, and executes only an approved local plan.",
+      "evidence_refs": [
+        "commit.skill",
+        "commit.helper"
+      ],
+      "depends_on": [
+        "context.orientation-flow"
+      ],
+      "confidence": "confirmed"
+    },
+    {
+      "id": "git.sync-gate",
+      "kind": "evidence_gate",
+      "claim": "GitHub synchronization is separately authorized after local Skill maintenance.",
+      "evidence_refs": [
+        "sync.skill"
+      ],
+      "depends_on": [
+        "git.scoped-commit-flow"
+      ],
+      "confidence": "confirmed"
+    }
+  ],
+  "experiment_provenance": {
+    "path_ref": null,
+    "required_states": [
+      "implemented",
+      "configured",
+      "executed",
+      "reported"
+    ]
+  },
+  "do_not_assume": [
+    "Committed files do not prove that the current Codex runtime accepted every upstream metadata key.",
+    "A local commit does not prove GitHub synchronization.",
+    "Ignored system, plugin, cache, session, and machine-local state is not reproduced by this repository.",
+    "Task routes prioritize evidence and never restrict source expansion."
+  ],
+  "boundaries": {
+    "policy_source": "repository.layout",
+    "overrides": []
+  },
+  "refresh": {
+    "profile_fingerprint": null,
+    "active_fingerprint": null,
+    "semantic_fingerprints": [
+      {
+        "semantic_node": "catalog.layout",
+        "evidence": [
+          {
+            "ref": "repo.readme",
+            "sha256": "sha256:8187207d78dd7b627c5f6503b5a20a8152a09dfdd878a8fc2cc8318fc3d48bcc"
+          },
+          {
+            "ref": "repo.gitignore",
+            "sha256": "sha256:45756b1e7bd2798975df7b1b4b105aade94e49c487fca1f9b8f495866998d6a6"
+          }
+        ]
+      },
+      {
+        "semantic_node": "catalog.upstream-compatibility",
+        "evidence": [
+          {
+            "ref": "repo.readme",
+            "sha256": "sha256:8187207d78dd7b627c5f6503b5a20a8152a09dfdd878a8fc2cc8318fc3d48bcc"
+          }
+        ]
+      },
+      {
+        "semantic_node": "context.orientation-flow",
+        "evidence": [
+          {
+            "ref": "context.skill",
+            "sha256": "sha256:f2574ff75142a2ef13f995cf84afd3a408a4b982d0fa4fc9a1e930942c5fab12"
+          },
+          {
+            "ref": "context.schema",
+            "sha256": "sha256:85bae5f5f921ecef0d45531b1d25567532ab78b8d936d2a93b18a8f832e00584"
+          },
+          {
+            "ref": "orientation.skill",
+            "sha256": "sha256:87fdd053a03f2bc4c5249f4c1e2462da58f27e443664c16afb8dd798c5d28d94"
+          },
+          {
+            "ref": "orientation.collector",
+            "sha256": "sha256:39498f4b1a229724c41a5325fec006b7b89c5c8b8d72d5195cf717af301d9591"
+          },
+          {
+            "ref": "orientation.bundle",
+            "sha256": "sha256:421a59d1c1e0a4dcb37cf19b71275f94f6dac8c1219f27faf46b49aae599036d"
+          }
+        ]
+      },
+      {
+        "semantic_node": "git.scoped-commit-flow",
+        "evidence": [
+          {
+            "ref": "commit.skill",
+            "sha256": "sha256:9a8ee9798ea26a8f02d392d1fe0f892515b707277d0a358411a203e467e4c9bb"
+          },
+          {
+            "ref": "commit.helper",
+            "sha256": "sha256:9efc90987e5299722e8da5084c6e2a630f505db048f2fcf7ae8a064e2552cd45"
+          }
+        ]
+      },
+      {
+        "semantic_node": "git.sync-gate",
+        "evidence": [
+          {
+            "ref": "sync.skill",
+            "sha256": "sha256:3b467b732e18a6732fd9b58212f465915f5971a34125acd02a38f0d67d9654bd"
+          }
+        ]
+      }
+    ]
+  }
+}
