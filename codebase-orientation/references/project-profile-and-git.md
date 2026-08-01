@@ -1,59 +1,65 @@
-# ProjectProfile and Git Evidence
+# ProjectProfile, Git, and Hierarchical AI Context Evidence
 
-Read this reference only when the target path contains a ProjectProfile-style `profile/` directory, an Active workspace, or multiple related Git repositories.
+Read this reference only for a ProjectProfile-style `profile/` directory, an
+Active workspace, or multiple related Git repositories.
 
-## Evidence Hierarchy
+## Evidence hierarchy
 
-Use the following evidence in order:
+Use evidence in this exact order:
 
-1. Active links and current filesystem targets describe what the workspace can run now.
-2. `profile/workspace.json` declares components, Active entry names, and shared runtime templates.
-3. `profile/component.json` declares portable component identity, logical environment, IDE boundaries, entrypoints, and artifacts.
-4. Git commit/tag/branch and dirty status describe the exact code provenance.
-5. Third-party lock files and saved patches describe dependency provenance.
+1. Active links and resolved filesystem targets describe what can run now.
+2. `profile/workspace.json` declares components, Active names, and shared runtime templates.
+3. `profile/component.json` declares portable identity, logical runtime, IDE roots,
+   entrypoints, artifacts, and—when available—`path_policy`.
+4. Git commit/tag/branch and dirty state describe exact code provenance.
+5. Third-party locks and saved patches describe dependency provenance.
+6. `docs/ai-guide/AI_CONTEXT.json` is an evidence-backed attention map and summary.
 
-Do not treat generated `.idea` files, `active_profile.json`, logs, checkpoints, or local environment overrides as portable source of truth. They can corroborate the current machine state only.
+Do not treat `.idea`, `active_profile.json`, logs, checkpoints, or local
+environment overrides as portable source of truth. They can corroborate the
+current machine state only.
 
-## Workspace Interpretation
+## Workspace and component interpretation
 
-For a workspace profile, identify each declared component key and inspect the corresponding Active path. Report both the stable Active path and its resolved physical target. If a link is missing, broken, or points to a component whose profile disagrees with the workspace key, mark that component as unresolved instead of guessing.
+For a workspace Profile, inspect each declared component key at the Profile's
+Active path. Record both stable Active path and resolved physical target. A
+missing/broken link or Profile/key disagreement is `unresolved`, never a reason
+to guess a version.
 
-Non-Active sibling versions are not automatically obsolete. Describe them as historical or candidate versions until their role is evidenced by the user, Git history, or documentation.
+Non-Active siblings are historical or candidate versions until evidence says
+otherwise. Profile component fields may evolve, but record available
+identity/version, logical runtime key, source/test/resource roots, excluded and
+generated folders, entrypoints, third-party roots, and path rules. `Excluded`
+affects IDE indexing only; it does not alter imports or Git tracking.
 
-## Component Interpretation
+## Path policy and drift
 
-Component profiles commonly contain these concepts, though field names may evolve:
+Prefer a Profile `path_policy.rules` array containing relative `path`, standard
+`category`, and an optional short `reason`. Resolve rules using the most-specific
+path first; when specificity ties, Profile outranks Context. Standard categories:
 
-| Concept | Orientation use |
-|---|---|
-| Identity/version | Name the precise code version being understood. |
-| Logical runtime key | Recommend, but do not assume, an interpreter. |
-| Source/test/resource roots | Prioritize code and behavioral evidence. |
-| Excluded/generated folders | Avoid wasting analysis on outputs and caches. |
-| Entrypoints | Locate real run/debug paths and primary workflows. |
-| Third-party roots | Preserve dependency boundaries during analysis. |
+```text
+core | contract | entrypoint | experiment | test | evidence |
+maintained_dependency | third_party | reference | historical |
+generated_evidence | generated_ephemeral | local_only | auxiliary
+```
 
-`Excluded` does not change runtime imports or Git tracking. `.gitignore` is a separate policy; verify it only when version-control behavior matters.
+The distinction between `generated_evidence` and `generated_ephemeral` is
+mandatory for research repositories: stable manifests, metric summaries, and
+paper-bound tables remain discoverable; logs, caches, checkpoints, and temporary
+renders remain low priority. A category is task-relative: `auxiliary` for model
+training may be `core` for Profile maintenance.
 
-## Python and PyCharm Interpreter Alignment
+When `path_policy` is absent, the collector converts legacy Profile fields into
+provisional claims and compares them with Context boundaries and `.gitignore`
+re-inclusion rules. Treat `classification_conflict`, unresolved
+`classification_overlap`, and `boundary_covers_gitignore_exception` as evidence
+gaps. Do not infer that a negated `.gitignore` pattern proves maintained code; it
+only proves that a broad ignore/boundary rule needs review.
 
-Keep the interpreter contract layered:
+## Git evidence
 
-1. The workspace may declare `default_environment_key` for its project-level fallback.
-2. Each component declares `runtime.environment_key` for module-specific work.
-3. `environment_templates` maps a logical key to machine-local `python_bin` or `root`.
-4. `.idea/misc.xml` records PyCharm's project SDK; Active `.iml` files record module SDKs.
-5. A Run/Debug configuration may intentionally override either one.
-
-Do not assume a ProjectProfile default when the field is absent. Report it as `missing`, even if PyCharm currently has a project SDK. A `shared` component has no required interpreter unless its Profile explicitly provides one.
-
-Verify SDK display names against the expected environment directory name and, when the local PyCharm SDK registry is readable, against the registered Python executable. The registry is machine-local corroboration, not portable source of truth.
-
-`codebase-orientation` must not write `.idea` or the SDK registry. If the user authorizes repair, update the ProjectProfile schema/synchronizer first, regenerate PyCharm configuration, then rerun the orientation check.
-
-## Git and GitHub Evidence
-
-Collect Git facts without mutation:
+Collect facts without mutation:
 
 ```bash
 git -C <root> rev-parse --show-toplevel
@@ -64,17 +70,72 @@ git -C <root> status --short
 git -C <root> remote -v
 ```
 
-Remote metadata only establishes an optional GitHub/GitLab relationship. Do not contact a remote, pull, push, or infer repository ownership during orientation. Sanitize credentials embedded in remote URLs before reporting them.
+Remote metadata establishes only an optional GitHub/GitLab relation. Do not
+contact remotes, pull, push, or infer ownership during orientation. Sanitize
+embedded credentials. If `status --short` is non-empty, distinguish the
+committed baseline from working-tree conclusions.
 
-If `status --short` is non-empty, report the repository as dirty and distinguish committed baseline conclusions from working-tree conclusions. Do not inspect every changed file unless it matters to the request.
+When `third_party/lock-*.json` exists, report the selected lock snapshot and
+matching `patches/third_party/` state. Treat vendor code as read-only unless the
+task is explicitly about that dependency.
 
-## Third-Party State
+## Python and PyCharm alignment
 
-When `third_party/lock-*.json` exists, report its latest snapshot identifier and whether a matching `patches/third_party/` directory exists. Treat nested vendor repositories as read-only references by default. Read their implementation only for a request explicitly about that dependency.
+Interpret runtime configuration in layers:
 
-## Recommended Reproducibility Summary
+1. Workspace `default_environment_key` is the project fallback.
+2. Component `runtime.environment_key` is the module requirement.
+3. `environment_templates` maps logical keys to local `python_bin` or root.
+4. `.idea/misc.xml` holds project SDK; Active `.iml` files hold module SDKs.
+5. Run/Debug configuration may intentionally override either SDK.
 
-Use a compact summary rather than raw command output:
+Report a missing Profile default as `missing` even when PyCharm has a project
+SDK. Verify SDK names against Profile templates and local registry only as
+machine-local corroboration. Orientation never edits `.idea`, the registry, or
+Profile; ProjectProfile synchronization is the authorized writer.
+
+## Hierarchical AI context freshness
+
+For a workspace, evaluate the root Context and one leaf Context for every Active
+component. For an individual component, evaluate its local leaf and enclosing
+root when current Profile reveals one. Context prioritizes first attention; it
+does not whitelist source paths or replace a Deep implementation trace.
+
+Validate each v3/v4 node before use. Compare its `profile_fingerprint` and
+`active_fingerprint` with the deterministic inventory before source browsing. In
+a Deep pass, compare v3 anchor hashes or v4 semantic evidence hashes after
+reading source. Each node result is one of:
+
+```text
+valid | partially_stale | stale_profile | stale_active | stale_anchor |
+needs_deep_refresh | invalid_schema | missing
+```
+
+For v4, `partially_stale` names the semantic node IDs whose evidence changed and
+the task routes, contracts, experiments, tests, or paper claims that depend on
+them. Unaffected semantic nodes remain usable. A Profile/Active fingerprint
+mismatch still requires topology reorientation before local semantic reuse.
+
+Also report workspace child coverage as `complete`, `partial`, or `missing`.
+The fingerprints deliberately omit Git HEAD and dirty state so normal commits
+do not cause context churn. A mismatch signals reorientation, not an IDE or Git
+configuration error.
+
+## Intent-specific Bundle
+
+Use `build_orientation_bundle.py` after inventory collection when the task is
+known. The script selects explicit components first, otherwise uses the best
+root task route, and emits only compact reproducibility facts, matched routes,
+required evidence, referenced semantic nodes/contracts, `do_not_assume`, and
+classification diagnostics. The output is ephemeral stdout with a 32 KiB
+default budget. If a section is removed to fit, `truncated_sections` records it;
+`over_budget=true` requires a narrower component/intent selection.
+
+The Bundle is an attention packet, never a source whitelist. Continue into
+current source until all route-required evidence is verified or each gap is
+explicitly reported.
+
+## Compact reproducibility summary
 
 ```text
 Component: <key> → <resolved path>
@@ -83,4 +144,5 @@ Git: <branch> @ <short HEAD>, <tag/describe>, clean|dirty
 Runtime: <logical environment key>; actual interpreter <confirmed|unconfirmed>
 Entrypoints: <relevant names>
 Third party: <latest lock or none>
+AI context: <state>
 ```

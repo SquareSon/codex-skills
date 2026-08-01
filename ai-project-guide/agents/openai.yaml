@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI Project Context"
+  short_description: "Build task-routed AI context and experiment provenance."
+  default_prompt: "Use $ai-project-guide to create or refresh a validated v4 AI_CONTEXT tree and experiment provenance."

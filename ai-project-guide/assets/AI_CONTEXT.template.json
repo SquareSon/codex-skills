@@ -1,0 +1,40 @@
+{
+  "schema": "ai-project-context/v4",
+  "scope": "workspace",
+  "authority_order": ["active", "profile", "git", "source", "context"],
+  "reference_catalog": {
+    "workspace.profile": {"scope": "workspace", "path": "profile/workspace.json"}
+  },
+  "summary": {
+    "purpose": "",
+    "architecture": [],
+    "key_flows": []
+  },
+  "hierarchy": {
+    "role": "workspace_root",
+    "child_contexts": [],
+    "shard_contexts": []
+  },
+  "bootstrap": {
+    "read_before_code": ["workspace.profile"],
+    "active_components": []
+  },
+  "components": [],
+  "task_routes": [],
+  "contracts": [],
+  "semantic_nodes": [],
+  "experiment_provenance": {
+    "path_ref": null,
+    "required_states": ["implemented", "configured", "executed", "reported"]
+  },
+  "do_not_assume": [],
+  "boundaries": {
+    "policy_source": "profile.path_policy",
+    "overrides": []
+  },
+  "refresh": {
+    "profile_fingerprint": null,
+    "active_fingerprint": null,
+    "semantic_fingerprints": []
+  }
+}

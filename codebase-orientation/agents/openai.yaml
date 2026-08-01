@@ -1,4 +1,4 @@
 interface:
   display_name: "Codebase Orientation"
-  short_description: "Trace active code, Profile, Git, and interpreter alignment."
-  default_prompt: "Use $codebase-orientation to understand this codebase or workspace, including Profile, Git, runtime, and PyCharm interpreter alignment."
+  short_description: "Route tasks into active code, contracts, and evidence."
+  default_prompt: "Use $codebase-orientation to build a task-specific, source-evidenced map of this active codebase."

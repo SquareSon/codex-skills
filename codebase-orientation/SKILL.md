@@ -1,148 +1,206 @@
 ---
 name: codebase-orientation
-description: Build or refresh a reliable understanding of a codebase, component, or multi-repository workspace. Use when Codex needs to analyze a work path, active ProjectProfile selection, Git/GitHub provenance, Python runtime and PyCharm interpreter alignment, README freshness, entrypoints, tests, deprecated code, auxiliary references, reproducibility context, or current state after an authorized commit.
+description: Build task-routed, evidence-backed understanding of a codebase, component, or ProjectProfile workspace. Use when Codex needs to quickly or deeply understand active implementation, architecture, control/data flow, cross-component contracts, experiments, Git/runtime provenance, hierarchical AI_CONTEXT freshness, entrypoints, tests, boundaries, or reproducibility before downstream work.
 ---
 
 # Codebase Orientation
 
-## Core Rule
+Establish current selection and configuration before interpreting code. Start
+read-only: do not run project entrypoints, tests, dependency installation, Git
+mutations, or unrelated documentation edits merely to orient a project.
 
-Establish the exact code and configuration being understood before interpreting its logic. Start read-only. Do not run project entrypoints, tests, dependency installation, Git mutations, or documentation edits merely to orient the codebase.
+`AI_CONTEXT.json` is a verified attention map and compact semantic summary. It
+prioritizes where understanding starts; it never narrows the source evidence
+required for a conclusion, replaces implementation reading, or overrides
+Active/Profile/Git/current source.
 
-Write reports and requested documentation in the user's language.
+## Evidence and scope
 
-## 1. Identify the Scope
-
-Treat the supplied path as one of the following:
-
-- **Component**: a single repository or a versioned subproject.
-- **Workspace**: a directory coordinating multiple components.
-- **Auxiliary/reference path**: a dependency, historical version, dataset utility, vendor copy, or example supplied only for context.
-
-Treat auxiliary paths as read-only unless the user explicitly authorizes changes. Do not deeply inspect deprecated versions, generated artifacts, caches, or vendored code unless the question depends on them.
-
-## 2. Discover Profile and Git Context First
-
-Before choosing Quick or Deep mode, search the supplied path and its ancestors for:
+Classify the supplied path as a component, ProjectProfile workspace, or
+auxiliary/reference path. Resolve and use this order:
 
 ```text
-profile/workspace.json
-profile/component.json
-active_profile.json
-.git
-third_party/lock-*.json
-patches/third_party/
+Active selection > ProjectProfile > Git/current source > AI_CONTEXT.json
 ```
 
-If a `profile/workspace.json` is present:
+Before broad code reading, discover `profile/workspace.json`,
+`profile/component.json`, `active_profile.json`, `.git`, third-party locks,
+patches, root/child `docs/ai-guide/AI_CONTEXT.json`, and legacy
+`PROJECT_GUIDE.md`.
 
-1. Read its component list and Active directory definition.
-2. Resolve the current Active links or state record.
-3. Treat selected Active components as the primary code to understand.
-4. Treat sibling versions that are not selected as historical or candidate references.
+For a workspace, resolve every declared Active link and treat selected targets as
+primary code. Treat non-Active siblings as historical/candidate unless evidence
+says otherwise. Collect read-only Git root, branch, HEAD, describe, short status,
+and sanitized remotes for every primary repository. A dirty tree means results
+apply to its working state.
 
-If a `profile/component.json` is present, record its identity, version, logical runtime key, IDE roots, entrypoints, generated artifacts, and third-party roots. Do not assume a particular ProjectProfile schema or component name; report fields that are absent as unknown.
+For Profile workspaces, read
+[references/project-profile-and-git.md](references/project-profile-and-git.md)
+and run the deterministic inventory. For a concrete task, prefer the temporary
+Bundle because it selects task-relevant components, routes, contracts, semantic
+nodes, and classification diagnostics without copying the entire Context tree:
 
-For every primary repository, collect read-only Git evidence: root, branch, HEAD, nearest tag or describe value, short status, and sanitized remote names/URLs when present. A dirty worktree means conclusions apply to the working tree rather than solely to a committed baseline.
+```bash
+conda run -n codex-tools python \
+  /home/square/.codex/skills/codebase-orientation/scripts/collect_orientation_context.py \
+  --path <workspace-or-component>
 
-When a profile or multi-repository workspace is found, read [references/project-profile-and-git.md](references/project-profile-and-git.md). Use `scripts/collect_orientation_context.py` when a deterministic JSON inventory will improve accuracy. The script uses only the Python standard library and read-only Git commands, so it may run with `conda run -n codex-tools` without confirming a project runtime.
+conda run -n codex-tools python \
+  /home/square/.codex/skills/codebase-orientation/scripts/build_orientation_bundle.py \
+  --path <workspace-or-component> --intent "<current task>" \
+  [--component <active-key>]
+```
 
-## 3. Establish Reading Boundaries
+The Bundle is ephemeral machine input, not a project artifact. Its default
+32 KiB budget is independent from persistent Context node budgets. It never
+replaces source expansion or authorizes writes.
 
-Use profile and Git evidence to classify paths before reading source:
+## Hierarchical AI Context
 
-- **Active code**: selected component roots, declared source roots, entrypoints, and relevant tests.
-- **Generated/ignored content**: Excluded folders, generated artifacts, logs, checkpoints, outputs, and caches. Confirm their purpose but do not inventory them.
-- **Third-party/reference code**: declared vendor roots, submodules, external snapshots, and locked dependencies. Identify contribution and version state without deep code reading by default.
-- **Historical/candidate versions**: non-Active sibling versions. Read only profile, Git, README, and a minimal structural summary unless explicitly requested.
+For a workspace, locate the workspace Context plus the Context in every
+resolved Active component. For a component request, locate its local Context and
+its enclosing workspace Context when a Profile reveals one.
 
-`Excluded` affects IDE indexing only. `.gitignore` and Git status determine version-control state. Do not conflate either with Python runtime importability.
+1. Validate each `ai-project-context/v3` or `v4` node with
+   `ai-project-guide/scripts/validate_ai_context.py` before using it.
+2. Classify each local node as `valid`, `partially_stale`, `stale_profile`,
+   `stale_active`, `stale_anchor`, `needs_deep_refresh`, `invalid_schema`, or
+   `missing`. For v4, report stale semantic node IDs and affected routes,
+   contracts, tests, experiments, or paper claims instead of invalidating the
+   whole file when evidence permits a local result.
+3. Report workspace child coverage independently as `complete`, `partial`, or
+   `missing`. A valid root never makes a missing child valid.
+4. For a global task, read the root summary and all relevant Active child
+   summaries before source analysis. For a component task, read its child
+   summary and the root only for cross-component topology and contracts.
+5. Use an attention route only as the first investigation pass. Expand source
+   reading according to the route and the actual code evidence. Generated,
+   third-party, historical, and auxiliary boundaries are default priorities, not
+   prohibitions.
+6. Treat v2 or legacy Markdown guides as migration evidence only. Report them;
+   never auto-convert, rewrite, or use them as current authority.
 
-## 4. Verify Python and PyCharm Interpreter Alignment
+Read [the Context contract](../ai-project-guide/references/ai-context-schema.md)
+when a Context tree exists, is stale, or must be evaluated.
 
-Read logical runtime identifiers from Profile first. When a workspace maps environment keys to local paths, distinguish the portable logical key from the machine-local interpreter path.
+## Task routing and evidence completion
 
-For a PyCharm workspace, compare the following evidence in order:
+Resolve task intent before broad source reading. Use explicit component keys
+when supplied; otherwise select components from the highest-scoring root task
+route. A global or unmatched task may start from all Active component summaries,
+but Deep analysis still expands only where the question requires evidence.
 
-1. `profile/workspace.json`: `default_environment_key` when explicitly declared, then `environment_templates`.
-2. Every Active component `profile/component.json`: its `runtime.environment_key`.
-3. PyCharm project SDK: `.idea/misc.xml` → `ProjectRootManager`.
-4. PyCharm module SDK: the Active `.iml` → `NewModuleRootManager` → `orderEntry type="jdk"`.
-5. Shared Run/Debug configurations: explicit SDK, module SDK, shell interpreter, and relevant runtime variables such as `ENV_ROOT` or `PYTHON_BIN`.
-6. The local PyCharm SDK registry, when available, only to verify that an SDK name resolves to the expected executable.
+For a v4 route, follow `attention_refs`, `semantic_nodes`, and `contract_ids`,
+then inspect every `required_evidence` item. Completion requires
+`all_required_evidence_or_explicit_gap`: either verify all required evidence or
+name every missing/unreadable item and limit the conclusion. Enforce
+`do_not_assume`, especially:
 
-Use `scripts/collect_orientation_context.py` to produce this comparison. Report each result as `aligned`, `mismatch`, `unverified`, `shared`, or `missing`; do not infer a missing Profile default from the current PyCharm setting.
+- implementation does not prove configuration;
+- configuration does not prove execution;
+- execution does not prove a reported paper claim;
+- a generated or ignored path is not automatically irrelevant evidence.
 
-The project SDK is only a fallback. A module SDK or an explicit Run/Debug interpreter may intentionally differ. Treat a difference as a mismatch only when it conflicts with the Profile environment declared for that module or configuration.
+## Understanding depth
 
-`codebase-orientation` is read-only: it verifies and reports alignment but never edits `.idea`, global PyCharm SDK records, or Profile files. When a correction is authorized, use the ProjectProfile synchronization workflow as the writer, then run this Skill again to verify the result.
+Select one depth based on the request; do not let Context reduce the required
+depth.
 
-Before running project scripts, tests, notebooks, or installing packages:
+### Quick
 
-1. Report the recommended logical environment and supporting evidence.
-2. Ask the user to confirm the actual Conda/interpreter environment if it is not explicitly known.
-3. Use the confirmed environment only; never install into base, system Python, or an inferred environment.
+Use for resuming work, identifying active code, checking Context/Git/runtime
+state, or deciding where to continue reading.
 
-Do not expose secrets from ignored local environment files, environment variables, remote URLs, or configuration files.
+1. Collect Profile/Active/Git/runtime inventory and Context tree status.
+2. Read root/child summaries and attention anchors relevant to the request.
+3. Verify selected entrypoints, package metadata, key configuration, and enough
+   nearby code to reject stale or contradictory Context claims.
+4. Report active topology, attention starting points, Context state, boundaries,
+   interpreter alignment, and uncertainty.
 
-## 5. Refresh After an Authorized Commit
+Quick is not a file-by-file audit and never writes Context.
 
-This skill remains read-only. When an authorized downstream workflow has just committed changes, start a fresh Quick Mode pass rather than relying on earlier Git state. Re-read the Profile/Active selection and collect the current branch, HEAD, tag/describe value, remaining dirty state, and third-party lock evidence.
+### Deep
 
-Report the refreshed evidence as the current project understanding. Do not stage, commit, push, or write a persistent project journal from this skill; update project documentation only with separate user authorization.
+Use for global understanding, architecture analysis, code review, research
+interpretation, or before substantial modifications. Complete Quick discovery,
+then build a source-evidenced model of the active implementation.
 
-## 6. Choose Analysis Depth
+For every task-relevant active component, do all applicable work below:
 
-### Quick Understanding Mode
+1. Map package/module responsibilities from source layout, metadata, imports,
+   registries, configuration, and explicit entrypoints.
+2. Trace each relevant entrypoint through callers, callees, factories,
+   configuration resolution, mode branches, error/edge handling, and externally
+   visible outputs.
+3. Trace data contracts end-to-end: producer, source/annotation/input format,
+   serialized artifact or in-memory schema, consumer, transforms,
+   shapes or schemas, persisted artifacts, model or algorithm boundaries,
+   validator/test evidence, evaluation/export consumers, and failure-sensitive
+   assumptions.
+4. Read tests, fixtures, validation scripts, and representative experiments as
+   independent behavioral evidence; do not infer behavior solely from names or
+   README text.
+5. Resolve cross-component interfaces in both directions: producer, serialized
+   or in-memory contract, consumer, configuration handoff, and version/runtime
+   assumptions.
+6. Use Context attention anchors to begin, then expand into every source path
+   needed to explain the actual control/data flow. Stop only when the requested
+   conclusion has direct evidence and remaining gaps are explicit.
 
-Use when the user asks to refresh context, resume work, inspect README freshness, or quickly identify the active project.
+Do not mechanically read every file. Do not claim global understanding from
+entrypoints alone. Prefer a coherent, source-cited semantic model over a broad
+directory listing.
 
-1. Read README, Profile/Git context, and Python/PyCharm alignment first.
-2. Inspect current entrypoints, package metadata, top-level source, and relevant tests.
-3. Compare README claims with current paths, Active selection, Git status, and entrypoints.
-4. Report a compact code map, reproducibility context, stale documentation, and remaining uncertainty.
+## Context policy
 
-Do not perform a full file-by-file audit.
+Apply one explicit Context policy independently from Quick/Deep depth:
 
-### Deep Analysis Mode
+| Policy | Read | Write | Required use |
+| --- | --- | --- | --- |
+| `read_only` | Validate and use Context | Never | Default; Quick; post-commit checks |
+| `inspect_only` | Deeply validate Context and source | Never | Invoked by `$ai-project-guide` before tree creation/migration |
+| `refresh_existing` | Deeply validate Context and source | Refresh current valid existing nodes only | Explicit request to maintain existing Context |
 
-Use when the user asks to deeply analyze, review, summarize, or build global understanding before later work.
+`refresh_existing` cannot create a missing root/child, migrate v2, alter
+`AGENTS.md`, or touch an auxiliary/historical/third-party target. Use
+`$ai-project-guide` for creation, migration, restructuring, or a full tree
+refresh. Never begin a nested Context write when `$ai-project-guide` invoked
+Deep `inspect_only`.
 
-1. Complete Quick Mode context discovery, including Python/PyCharm alignment.
-2. Inspect the active project tree using fast discovery such as `rg --files`.
-3. Read documentation, package metadata, build scripts, configurations, entrypoints, representative source, and relevant tests.
-4. Identify purpose, main technical idea, data/control flow, major modules, and external boundaries.
-5. Separate active code, deprecated code, generated content, third-party/reference code, and historical versions with evidence.
-6. Report the orientation before beginning downstream implementation.
+## Boundaries and runtime
 
-## 7. Report Format
+Prefer Profile `path_policy`; resolve overlaps by the most-specific path and then
+by authority. Standard categories are `core`, `contract`, `entrypoint`,
+`experiment`, `test`, `evidence`, `maintained_dependency`, `third_party`,
+`reference`, `historical`, `generated_evidence`, `generated_ephemeral`,
+`local_only`, and `auxiliary`. When only legacy Profile fields exist, use them as
+provisional claims and report Context/Profile/`.gitignore` drift rather than
+silently choosing one. `Excluded` controls IDE indexing only; `.gitignore`
+controls ordinary Git discovery; neither changes imports or semantic relevance.
 
-Include the following when evidence exists:
+Read Python runtime evidence in this order: workspace Profile default/template,
+component runtime key, project SDK, module SDK, shared Run/Debug overrides, then
+local PyCharm SDK registry. Report `aligned`, `mismatch`, `unverified`,
+`shared`, or `missing`. Request actual interpreter confirmation before running
+project code when it is not explicitly known. Never infer an environment or
+install into base/system Python.
 
-1. **Scope and reproducibility context**: workspace/component path, Active selection, profile path and version, Git branch/HEAD/tag/dirty state, logical runtime, entrypoints, and third-party lock state.
-2. **Interpreter alignment**: Profile default/runtime key, project SDK, Active module SDKs, relevant Run/Debug overrides, registration evidence, and every mismatch or unverified field.
-3. **Purpose and main workflow**: what the active code does and how major components interact.
-4. **Active code map**: important folders/files and their responsibilities.
-5. **Boundaries**: deprecated, generated, excluded, third-party, and read-only reference paths.
-6. **Documentation assessment**: README facts verified, stale facts, and missing operational information.
-7. **Readiness and uncertainty**: what can safely happen next, what needs environment confirmation, and what requires user direction.
+## After an authorized commit
 
-Use absolute paths when they help disambiguate multiple versions. State whether a conclusion applies to the clean baseline or a dirty working tree.
+Run Quick + `read_only` for every committed workspace/component. Recheck
+Active/Profile/Git/runtime and root/child Context status. Report whether changed
+files could alter an entrypoint, route, component role, data/control contract,
+boundary, or anchor; recommend `$ai-project-guide` only when a new Deep evidence
+pass is warranted. Do not write Context merely because a commit occurred.
 
-## 8. Documentation and Safety Boundaries
+## Report contract
 
-- Default to reporting stale README facts; update README only when the user asks to edit documentation or explicitly authorizes the update.
-- Preserve useful user-authored documentation when authorized to edit it.
-- Do not switch branches, pull, push, commit, stage files, clean a worktree, update submodules, or modify third-party code during orientation.
-- Do not start implementation or refactoring before delivering the requested orientation report.
-
-## Final Self-Check
-
-- Confirm scope and path roles.
-- When present, confirm profile/Active selection, Git evidence, entrypoints, and third-party lock state.
-- Confirm that Active, historical, generated, third-party, and auxiliary boundaries are separated.
-- Confirm the runtime is only used after user confirmation for environment-dependent work.
-- Confirm Profile runtime, PyCharm project/module SDKs, and relevant Run/Debug overrides were compared when available.
-- Confirm no secrets or local-only absolute state are exposed.
-- Confirm the user receives an evidence-backed orientation report before downstream work.
-- After an authorized commit, confirm the report records new Git evidence and any intentionally remaining changes.
+Report: scope and reproducibility evidence; selected task route and components;
+Context tree/node state and child coverage; stale semantic nodes and downstream
+impact; source-evidenced purpose, architecture, control/data flows, concepts,
+and producer→artifact→consumer→validator/test contracts; active code
+responsibilities and classification drift; interpreter alignment; required
+evidence checked, explicit gaps, `do_not_assume` constraints, source expansion,
+confidence, and safe next actions. Use absolute paths only to disambiguate
+versioned locations. Do not expose secrets.
