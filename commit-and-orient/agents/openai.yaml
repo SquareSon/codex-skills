@@ -1,4 +1,4 @@
 interface:
-  display_name: "Commit & Orient"
-  short_description: "Plan safe multi-repo commits and refresh orientation."
-  default_prompt: "Use $commit-and-orient to inspect these changes, propose scoped commits, and refresh project understanding after I approve."
+  display_name: "Commit And Orient"
+  short_description: "Seal and execute safe multi-repo Git commit plans."
+  default_prompt: "Use $commit-and-orient to inspect these changes, seal an exact commit plan for approval, execute it safely, and refresh read-only orientation."
