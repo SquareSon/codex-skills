@@ -172,7 +172,14 @@ def workspace_nodes(inventory: dict[str, Any]) -> tuple[dict[str, Any] | None, d
 
     workspace = inventory.get("workspace")
     if not isinstance(workspace, dict):
-        return None, {}
+        component = inventory.get("component")
+        if not isinstance(component, dict):
+            return None, {}
+        inputs = component.get("ai_context_inputs")
+        path = inputs.get("expected_path") if isinstance(inputs, dict) else None
+        context = read_json(Path(path)) if isinstance(path, str) else None
+        key = component.get("key")
+        return None, {key: context} if isinstance(key, str) and context is not None else {}
     tree = workspace.get("ai_context_tree")
     tree = tree if isinstance(tree, dict) else {}
     root_record = tree.get("root") if isinstance(tree.get("root"), dict) else {}
@@ -187,6 +194,36 @@ def workspace_nodes(inventory: dict[str, Any]) -> tuple[dict[str, Any] | None, d
         if isinstance(key, str) and context is not None:
             child_contexts[key] = context
     return root_context, child_contexts
+
+
+def component_shard_contexts(
+        component_root: Path,
+        leaf_context: dict[str, Any],
+) -> tuple[list[tuple[str, dict[str, Any]]], list[str]]:
+    """解析组件叶声明的可移植分片路径，并保留缺失分片供报告。"""
+
+    catalog = leaf_context.get("reference_catalog")
+    hierarchy = leaf_context.get("hierarchy")
+    catalog = catalog if isinstance(catalog, dict) else {}
+    hierarchy = hierarchy if isinstance(hierarchy, dict) else {}
+    contexts: list[tuple[str, dict[str, Any]]] = []
+    missing: list[str] = []
+    for shard in hierarchy.get("shard_contexts", []):
+        if not isinstance(shard, dict) or not isinstance(shard.get("id"), str):
+            continue
+        shard_id = shard["id"]
+        reference = catalog.get(shard.get("context_ref"))
+        path_value = reference.get("path") if isinstance(reference, dict) else None
+        relative_path = Path(path_value) if isinstance(path_value, str) else None
+        if relative_path is None or relative_path.is_absolute() or ".." in relative_path.parts:
+            missing.append(shard_id)
+            continue
+        context = read_json(component_root / relative_path)
+        if context is None:
+            missing.append(shard_id)
+        else:
+            contexts.append((shard_id, context))
+    return contexts, missing
 
 
 def select_component_keys(
@@ -261,12 +298,28 @@ def build_bundle(path: Path, intent: str, requested_components: list[str], max_b
     selected, root_routes = select_component_keys(intent, requested_components, available, root_context)
 
     contexts: list[dict[str, Any]] = []
+    missing_shards: list[dict[str, str]] = []
     if root_context is not None:
         contexts.append({"role": "workspace_root", "content": compact_context(root_context, intent)})
     for key in selected:
         context = child_contexts.get(key)
         if context is not None:
             contexts.append({"role": "component_leaf", "component": key, "content": compact_context(context, intent)})
+            component_root = components_by_key[key].get("resolved_root")
+            if isinstance(component_root, str):
+                shards, missing = component_shard_contexts(Path(component_root), context)
+                for shard_id, shard_context in shards:
+                    compact = compact_context(shard_context, intent)
+                    if compact.get("matched_routes") or any(marker in intent.lower() for marker in GLOBAL_MARKERS):
+                        contexts.append(
+                            {
+                                "role": "semantic_shard",
+                                "component": key,
+                                "shard": shard_id,
+                                "content": compact,
+                            }
+                        )
+                missing_shards.extend({"component": key, "shard": shard_id} for shard_id in missing)
     missing_contexts = [key for key in selected if key not in child_contexts]
     bundle = {
         "schema": BUNDLE_SCHEMA,
@@ -280,6 +333,7 @@ def build_bundle(path: Path, intent: str, requested_components: list[str], max_b
         "components": [compact_component(components_by_key[key]) for key in selected],
         "contexts": contexts,
         "missing_contexts": missing_contexts,
+        "missing_shards": missing_shards,
         "source_expansion_required": True,
         "completion_rule": "all_required_evidence_or_explicit_gap",
         "truncated_sections": [],

@@ -104,6 +104,52 @@ def valid_v4_context() -> dict:
     }
 
 
+def valid_standalone_context() -> dict:
+    """构造无 ProjectProfile 或 Active 选择的独立仓库 Context。"""
+
+    context = valid_v4_context()
+    context["scope"] = "component"
+    context["reference_catalog"] = {
+        "skills.readme": {"scope": "component", "component": "skills", "path": "README.md"},
+        "skills.source": {"scope": "component", "component": "skills", "path": "ai-project-guide"},
+        "skills.entrypoint": {
+            "scope": "component",
+            "component": "skills",
+            "path": "ai-project-guide/SKILL.md",
+        },
+    }
+    context["hierarchy"] = {"role": "component_leaf", "child_contexts": [], "shard_contexts": []}
+    context["bootstrap"] = {"read_before_code": ["skills.readme"], "active_components": ["skills"]}
+    context["components"] = [
+        {
+            "id": "skills",
+            "role": "Codex skill collection",
+            "locator": {"kind": "relative", "path": "."},
+            "profile_ref": None,
+            "runtime_key": None,
+            "source_refs": ["skills.source"],
+            "entrypoint_refs": ["skills.entrypoint"],
+        }
+    ]
+    context["task_routes"][0]["components"] = ["skills"]
+    context["task_routes"][0]["attention_refs"] = ["skills.entrypoint"]
+    context["task_routes"][0]["required_evidence"] = ["skills.entrypoint"]
+    context["summary"]["key_flows"][0]["evidence_refs"] = ["skills.entrypoint"]
+    context["semantic_nodes"][0]["evidence_refs"] = ["skills.entrypoint"]
+    context["boundaries"] = {"policy_source": "repository.layout", "overrides": []}
+    context["refresh"] = {
+        "profile_fingerprint": None,
+        "active_fingerprint": None,
+        "semantic_fingerprints": [
+            {
+                "semantic_node": "nerf.training",
+                "evidence": [{"ref": "skills.entrypoint", "sha256": FINGERPRINT}],
+            }
+        ],
+    }
+    return context
+
+
 class ContextValidatorTests(unittest.TestCase):
     def test_template_is_valid_when_incomplete(self) -> None:
         template = json.loads((ASSET_ROOT / "AI_CONTEXT.template.json").read_text(encoding="utf-8"))
@@ -111,6 +157,15 @@ class ContextValidatorTests(unittest.TestCase):
 
     def test_minimal_context_is_valid(self) -> None:
         self.assertEqual(validate_v4(valid_v4_context(), allow_incomplete=False), [])
+
+    def test_standalone_context_without_profile_is_valid(self) -> None:
+        self.assertEqual(validate_v4(valid_standalone_context(), allow_incomplete=False), [])
+
+    def test_active_component_without_profile_is_rejected(self) -> None:
+        context = copy.deepcopy(valid_v4_context())
+        context["components"][0]["profile_ref"] = None
+        errors = validate_v4(context, allow_incomplete=False)
+        self.assertTrue(any("独立 relative 组件" in error for error in errors))
 
     def test_dangling_route_node_is_rejected(self) -> None:
         context = copy.deepcopy(valid_v4_context())

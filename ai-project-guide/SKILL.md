@@ -22,6 +22,11 @@ For a standalone component, maintain one file:
 <component-root>/docs/ai-guide/AI_CONTEXT.json
 ```
 
+A standalone repository without ProjectProfile uses a `relative` component
+locator, `profile_ref: null`, null Profile/Active refresh fingerprints, and
+`boundaries.policy_source: repository.layout`. Do not invent a Profile merely
+to satisfy Context metadata.
+
 For a ProjectProfile workspace, maintain the root and one component leaf for
 every current Active component:
 
@@ -102,6 +107,9 @@ Context `boundaries.overrides` stores only evidenced semantic exceptions and a
 reason; it must not duplicate the full Profile classification. Resolve overlaps
 by most-specific path and then Profile authority. Distinguish stable
 `generated_evidence` from disposable `generated_ephemeral`.
+
+For a standalone repository without ProjectProfile, use `repository.layout` as
+the boundary source and keep overrides equally evidence-based and minimal.
 
 When experiment claims matter, create one stable
 `docs/ai-guide/EXPERIMENT_PROVENANCE.json` per owning component from

@@ -498,8 +498,11 @@ def validate_components_v4(
         else:
             errors.append(f"{location}.locator.kind 必须是 active_component 或 relative")
         profile_ref = component.get("profile_ref")
-        if not isinstance(profile_ref, str) or profile_ref not in reference_ids:
-            errors.append(f"{location}.profile_ref 必须引用 reference_catalog")
+        if profile_ref is None:
+            if not isinstance(locator, dict) or locator.get("kind") != "relative":
+                errors.append(f"{location}.profile_ref 仅可在独立 relative 组件中为 null")
+        elif not isinstance(profile_ref, str) or profile_ref not in reference_ids:
+            errors.append(f"{location}.profile_ref 必须为 null 或引用 reference_catalog")
         runtime_key = component.get("runtime_key")
         if runtime_key is not None and (not isinstance(runtime_key, str) or not runtime_key):
             errors.append(f"{location}.runtime_key 必须是非空字符串或 null")
@@ -798,13 +801,17 @@ def validate_experiment_pointer_v4(value: Any, reference_ids: set[str], errors: 
 
 
 def validate_boundaries_v4(value: Any, reference_ids: set[str], errors: list[str]) -> None:
-    """校验 Profile 优先的边界覆盖；完整分类不在 Context 中重复。"""
+    """校验 Profile 或独立仓库来源的边界覆盖；完整分类不在 Context 中重复。"""
 
     if not isinstance(value, dict) or set(value) != {"policy_source", "overrides"}:
         errors.append("boundaries 必须仅包含 policy_source、overrides")
         return
-    if value.get("policy_source") not in {"profile.path_policy", "profile.legacy_artifacts"}:
-        errors.append("boundaries.policy_source 必须指向 Profile 路径分类来源")
+    if value.get("policy_source") not in {
+            "profile.path_policy",
+            "profile.legacy_artifacts",
+            "repository.layout",
+    }:
+        errors.append("boundaries.policy_source 必须指向 Profile 或独立仓库路径分类来源")
     overrides = value.get("overrides")
     if not isinstance(overrides, list):
         errors.append("boundaries.overrides 必须是数组")
@@ -830,6 +837,8 @@ def validate_refresh_v4(
         value: Any,
         reference_ids: set[str],
         semantic_node_ids: set[str],
+        require_profile_fingerprint: bool,
+        require_active_fingerprint: bool,
         allow_incomplete: bool,
         errors: list[str],
 ) -> None:
@@ -839,9 +848,13 @@ def validate_refresh_v4(
     if not isinstance(value, dict) or set(value) != fields:
         errors.append("refresh 必须仅包含 profile_fingerprint、active_fingerprint、semantic_fingerprints")
         return
-    for field in ("profile_fingerprint", "active_fingerprint"):
+    fingerprint_requirements = {
+        "profile_fingerprint": require_profile_fingerprint,
+        "active_fingerprint": require_active_fingerprint,
+    }
+    for field, required in fingerprint_requirements.items():
         fingerprint = value.get(field)
-        if fingerprint is None and allow_incomplete:
+        if fingerprint is None and (allow_incomplete or not required):
             continue
         if not isinstance(fingerprint, str) or not FINGERPRINT_PATTERN.fullmatch(fingerprint):
             errors.append(f"refresh.{field} 必须是 sha256:<64位十六进制> 指纹")
@@ -947,7 +960,25 @@ def validate_v4(value: dict[str, Any], allow_incomplete: bool) -> list[str]:
     ):
         errors.append("do_not_assume 必须是非空字符串数组")
     validate_boundaries_v4(value.get("boundaries"), reference_ids, errors)
-    validate_refresh_v4(value.get("refresh"), reference_ids, semantic_node_ids, allow_incomplete, errors)
+    profile_required = any(
+        isinstance(component, dict) and component.get("profile_ref") is not None
+        for component in components
+    )
+    active_required = any(
+        isinstance(component, dict)
+        and isinstance(component.get("locator"), dict)
+        and component["locator"].get("kind") == "active_component"
+        for component in components
+    )
+    validate_refresh_v4(
+        value.get("refresh"),
+        reference_ids,
+        semantic_node_ids,
+        profile_required,
+        active_required,
+        allow_incomplete,
+        errors,
+    )
     scan_sensitive_fields(value, errors)
     return errors
 

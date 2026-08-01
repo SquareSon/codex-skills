@@ -85,7 +85,9 @@ Use an Active or standalone locator:
 ```
 
 Component-scoped profile/source/entrypoint references must point to that same
-component. `bootstrap.read_before_code` is a reference-ID array;
+component. A standalone component with a `relative` locator and no
+ProjectProfile uses `profile_ref: null`; an `active_component` must reference
+its component Profile. `bootstrap.read_before_code` is a reference-ID array;
 `bootstrap.active_components` contains each node-owned Active component once.
 
 ## Task routes and evidence gates
@@ -155,6 +157,8 @@ ProjectProfile owns complete path classification. Context stores only:
 }
 ```
 
+For a standalone repository without ProjectProfile, use
+`"policy_source": "repository.layout"` and record only evidenced overrides.
 Resolve overlapping rules by the most-specific path and then Profile authority.
 Allowed categories are:
 
@@ -211,7 +215,8 @@ Child entries contain `component` and a catalog `context_ref`. Shard entries
 contain a stable `id` and `context_ref`.
 
 `refresh.profile_fingerprint` and `active_fingerprint` come from orientation
-inventory. `semantic_fingerprints` maps every semantic node to one or more
+inventory. They are `null` only for a standalone `relative` component that has
+no corresponding Profile or Active selection. `semantic_fingerprints` maps every semantic node to one or more
 `ref`/`sha256` evidence pairs. A changed evidence fingerprint marks that semantic
 node and its dependents `partially_stale`; it does not invalidate unrelated
 nodes. A Profile/Active mismatch still requires topology reorientation.

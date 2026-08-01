@@ -644,7 +644,7 @@ def component_context_inputs(component: dict[str, Any]) -> dict[str, Any]:
             "target_name": root.name,
             "profile_sha256": profile_fingerprint,
         }
-        if isinstance(component_key, str) and root is not None
+        if isinstance(component_key, str) and root is not None and isinstance(profile_fingerprint, str)
         else None
     )
     inputs = {
@@ -1077,6 +1077,8 @@ def collect_context(target_path: Path) -> dict[str, Any]:
             component_profile.parent.parent,
             component_key if isinstance(component_key, str) else None,
         )
+    elif workspace_profile_path is None and resolved_target.is_dir():
+        result["component"] = inspect_component(resolved_target, resolved_target.name)
     return result
 
 

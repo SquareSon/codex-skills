@@ -36,9 +36,15 @@ apply to its working state.
 
 For Profile workspaces, read
 [references/project-profile-and-git.md](references/project-profile-and-git.md)
-and run the deterministic inventory. For a concrete task, prefer the temporary
-Bundle because it selects task-relevant components, routes, contracts, semantic
-nodes, and classification diagnostics without copying the entire Context tree:
+and run the deterministic inventory.
+
+For an ordinary standalone repository without ProjectProfile, the inventory
+uses the repository directory as one `relative` component and discovers its
+local `docs/ai-guide/AI_CONTEXT.json` without inventing Profile or Active state.
+
+For a concrete task, prefer the temporary Bundle because it selects
+task-relevant components, routes, contracts, semantic nodes, and classification
+diagnostics without copying the entire Context tree:
 
 ```bash
 conda run -n codex-tools python \
