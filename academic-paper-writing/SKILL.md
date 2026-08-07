@@ -86,6 +86,7 @@ description: Polish, revise, review, and compose academic paper text. Use when C
 - When rewriting Chinese academic text, use formal but natural Chinese scholarly prose.
 - When rewriting English academic text, use idiomatic academic English without unnecessary complexity.
 - Do not mention revision history or meta-context in final prose, including phrases meaning "previous version", "materials you provided", or "this document" unless they are part of a formal citation or required document title.
+- Do not write modification-record statements into manuscript prose, such as "Figure X no longer repeats the full values from Table Y, but only retains two complementary result views." Replace them with direct scholarly statements about what the figure shows and why it matters.
 
 ## Formulas And Symbols
 
@@ -129,6 +130,7 @@ description: Polish, revise, review, and compose academic paper text. Use when C
 
 - Give the final replacement text first when the user asks for paper writing or revision.
 - Avoid prefacing the answer with explanations of what was changed unless the user asks for a change log.
+- Keep change-log, restructuring, deletion, or "no longer repeats" explanations outside the replacement text, and include them only when the user explicitly asks for revision notes.
 - If reporting figure/table usage is required, place a concise figure/table usage list after the final text.
 - If requesting missing data or additional materials, place concise supplement suggestions after the final text.
 - Keep placeholders explicit and easy to search, preferably `***`.
