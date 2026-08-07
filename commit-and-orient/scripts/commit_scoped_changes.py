@@ -5,9 +5,11 @@
 from __future__ import annotations
 
 import argparse
+from collections import defaultdict
 import hashlib
 import json
 import os
+import re
 import subprocess
 import tempfile
 from pathlib import Path
@@ -19,6 +21,46 @@ PLAN_ENVELOPE_SCHEMA = "commit-and-orient-plan-envelope/v1"
 SCOPED_CONFIRMATION = "I_CONFIRM_SCOPED_COMMIT"
 IDENTITY_CONFIRMATION = "I_CONFIRM_REPOSITORY_LOCAL_IDENTITY"
 DEFAULT_GIT_TIMEOUT_SECONDS = 120
+
+
+# 仅用于只读候选聚类；任何主题都不是提交授权，也不替代后续人工审阅。
+TOPIC_PATTERNS: dict[str, tuple[str, ...]] = {
+    "repository-hygiene": (
+        "gitignore", "planning", "artifact", "artifacts", "pycharm", "idea", "workspace",
+    ),
+    "precision": (
+        "amp", "fp16", "bf16", "autocast", "gradscaler", "precision",
+    ),
+    "spatial": (
+        "footprint", "mip", "ray", "convex", "frustum", "gaussian", "spatial", "camera",
+    ),
+    "evaluation": (
+        "metric", "ssim", "lpips", "pyiqa", "intensity", "evaluation", "eval", "visualization",
+    ),
+    "cache-validation": (
+        "cache", "prefetch", "stager", "snapshot", "authority", "validation", "validated",
+    ),
+    "observability": (
+        "wandb", "watch", "logging", "preview", "monitor",
+    ),
+    "semantic": (
+        "semantic", "voxel", "needle", "ontology", "label", "multilabel",
+    ),
+    "experiment": (
+        "ablation", "chapter2", "chapter_2", "registry", "preflight", "benchmark", "nvs",
+    ),
+}
+
+TOPIC_MESSAGES: dict[str, str] = {
+    "repository-hygiene": "chore(workspace): exclude local generated artifacts",
+    "precision": "feat(precision): align field AMP runtime",
+    "spatial": "feat(spatial): refine physical ray integration",
+    "evaluation": "feat(evaluation): harden metric runtime",
+    "cache-validation": "feat(runtime): validate and prefetch training data",
+    "observability": "feat(observability): unify experiment monitoring",
+    "semantic": "feat(semantic): strengthen semantic field runtime",
+    "experiment": "feat(experiment): extend reproducible experiment entrypoints",
+}
 
 
 class CommitScopeError(RuntimeError):
@@ -198,6 +240,165 @@ def inventory(repository: Path) -> dict[str, Any]:
         "staged_files": staged_files(repository),
         "git_operations": [str(path) for path in git_operation_paths(repository)],
         "remote_names": git_output(repository, "remote").splitlines(),
+    }
+
+
+def change_category(path_text: str) -> str:
+    """以路径判断变更角色；此分类不决定科学或提交相关性。"""
+
+    lowered = path_text.lower()
+    name = Path(path_text).name.lower()
+    if lowered.startswith(("tests/", "test/")) or name.startswith("test_"):
+        return "test"
+    if lowered.startswith(("docs/", "doc/")) or name.endswith((".md", ".rst")):
+        return "documentation"
+    if name.startswith(("run_", "benchmark_", "evaluate_", "preflight_")) or lowered.startswith("scripts/"):
+        return "entrypoint_or_experiment"
+    if lowered.startswith(("profile/", "docs/ai-guide/")):
+        return "profile_or_context"
+    if name in {".gitignore", "pyproject.toml", "setup.cfg"} or name.endswith((".json", ".toml", ".yaml", ".yml", ".tsv")):
+        return "configuration"
+    return "implementation"
+
+
+def changed_text_for_analysis(repository: Path, path_text: str, *, maximum_bytes: int = 262_144) -> str:
+    """读取已修改 hunks；新增文件使用有限内容，只返回给本地主题分析。"""
+
+    diff = run_git(repository, "diff", "--no-ext-diff", "--unified=0", "--", path_text)
+    if diff.returncode == 0 and diff.stdout.strip():
+        return diff.stdout[:maximum_bytes]
+    candidate = repository / path_text
+    if candidate.is_file() and not candidate.is_symlink():
+        try:
+            return candidate.read_text(encoding="utf-8", errors="replace")[:maximum_bytes]
+        except OSError:
+            return ""
+    return ""
+
+
+def lexical_tokens(value: str) -> list[str]:
+    """分割路径、snake_case 与 CamelCase，避免把 catalog 误判为 log。"""
+
+    expanded = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", value)
+    return re.findall(r"[a-z0-9]+", expanded.lower())
+
+
+def topic_scores(repository: Path, path_text: str) -> dict[str, int]:
+    """以路径和改动文本给出可解释的轻量主题分数。"""
+
+    path_tokens = lexical_tokens(path_text)
+    text_tokens = lexical_tokens(changed_text_for_analysis(repository, path_text))
+    scores: dict[str, int] = {}
+    for topic, terms in TOPIC_PATTERNS.items():
+        path_hits = sum(path_tokens.count(term) for term in terms)
+        text_hits = sum(text_tokens.count(term) for term in terms)
+        score = path_hits * 5 + min(text_hits, 24)
+        if score:
+            scores[topic] = score
+    return scores
+
+
+def classify_change_topics(repository: Path, path_text: str) -> dict[str, Any]:
+    """将单文件标为主主题、桥接文件或待人工归类项。"""
+
+    scores = topic_scores(repository, path_text)
+    category = change_category(path_text)
+    ranked = sorted(scores.items(), key=lambda item: (-item[1], item[0]))
+    if not ranked:
+        return {
+            "path": path_text,
+            "category": category,
+            "scores": scores,
+            "primary_topic": None,
+            "bridge_topics": [],
+            "reason": "未从路径或已修改文本中取得足够主题信号",
+        }
+    primary, primary_score = ranked[0]
+    bridge_topics = [
+        topic
+        for topic, score in ranked[1:]
+        if score >= 3 and score * 10 >= primary_score * 7
+    ]
+    return {
+        "path": path_text,
+        "category": category,
+        "scores": dict(ranked),
+        "primary_topic": primary,
+        "bridge_topics": bridge_topics,
+        "reason": (
+            f"主主题={primary}; 同强度主题={','.join(bridge_topics)}"
+            if bridge_topics
+            else f"主主题={primary}"
+        ),
+    }
+
+
+def proposal_blockers(repository: Path) -> list[dict[str, Any]]:
+    """报告会阻止候选进入封存/执行的状态，但保持 propose-plan 只读。"""
+
+    blockers: list[dict[str, Any]] = []
+    staged = staged_files(repository)
+    if staged:
+        blockers.append({"kind": "preexisting_staged", "paths": staged})
+    operations = [str(path) for path in git_operation_paths(repository)]
+    if operations:
+        blockers.append({"kind": "git_operation", "paths": operations})
+    state = head_state(repository)
+    if not state["has_commits"]:
+        blockers.append({"kind": "unborn_repository", "paths": []})
+    if not identity_info(repository)["available"]:
+        blockers.append({"kind": "missing_identity", "paths": []})
+    return blockers
+
+
+def propose_commit_groups(repository: Path) -> dict[str, Any]:
+    """只读生成文件级候选提交；桥接文件必须人工分配或合并。"""
+
+    changes = working_changes(repository)
+    classified = [classify_change_topics(repository, path) for path in changes]
+    groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    bridge_paths: list[dict[str, Any]] = []
+    unclassified_paths: list[dict[str, Any]] = []
+    for item in classified:
+        if item["primary_topic"] is None:
+            unclassified_paths.append(item)
+        elif item["bridge_topics"]:
+            bridge_paths.append(item)
+        else:
+            groups[str(item["primary_topic"])].append(item)
+
+    candidates: list[dict[str, Any]] = []
+    for topic in sorted(groups):
+        entries = groups[topic]
+        paths = sorted(str(item["path"]) for item in entries)
+        categories = sorted({str(item["category"]) for item in entries})
+        candidates.append(
+            {
+                "id": topic,
+                "recommended_message": TOPIC_MESSAGES[topic],
+                "paths": paths,
+                "path_count": len(paths),
+                "categories": categories,
+                "confidence": "high" if len(categories) >= 2 else "medium",
+                "executable_without_review": False,
+                "reason": "仅包含单主题文件；仍须确认其与桥接实现的原子性。",
+            }
+        )
+    blockers = proposal_blockers(repository)
+    return {
+        "repository": str(repository),
+        "head": head_state(repository),
+        "blocking_conditions": blockers,
+        "safe_to_seal": not blockers and not bridge_paths and not unclassified_paths,
+        "candidates": candidates,
+        "bridge_paths": bridge_paths,
+        "unclassified_paths": unclassified_paths,
+        "analysis_policy": {
+            "granularity": "file",
+            "mutates_git": False,
+            "requires_human_assignment_for_bridge_paths": True,
+            "hunk_splitting": "not_supported",
+        },
     }
 #endregion
 
@@ -668,10 +869,12 @@ def read_path_file(path: Path | None) -> list[str]:
 def parse_args() -> argparse.Namespace:
     """解析盘点、计划封存与显式提交参数。"""
 
-    parser = argparse.ArgumentParser(description="盘点、封存计划或安全提交显式 Git 文件范围。")
+    parser = argparse.ArgumentParser(
+        description="盘点、提出候选计划、封存计划或安全提交显式 Git 文件范围。"
+    )
     parser.add_argument(
         "--mode",
-        choices=("inventory", "seal-plan", "commit", "execute-plan"),
+        choices=("inventory", "propose-plan", "seal-plan", "commit", "execute-plan"),
         default="inventory",
     )
     parser.add_argument("--repo", action="append", default=[], help="Git 仓库或其内部路径；盘点模式可重复")
@@ -705,6 +908,19 @@ def main() -> int:
             payload: dict[str, Any] = {
                 "mode": "inventory",
                 "repositories": [inventory(path) for path in repositories],
+            }
+        elif args.mode == "propose-plan":
+            if not args.repo:
+                raise CommitScopeError("propose-plan 至少需要一个 --repo")
+            repositories = list(dict.fromkeys(repository_root(item) for item in args.repo))
+            payload = {
+                "mode": "propose-plan",
+                "proposal_version": "file-clustering-v1",
+                "repositories": [propose_commit_groups(path) for path in repositories],
+                "safety_note": (
+                    "候选不暂存、不提交、不自动分割同一文件；"
+                    "请人工分配 bridge_paths 后再封存。"
+                ),
             }
         elif args.mode == "seal-plan":
             if args.plan is None:

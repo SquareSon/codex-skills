@@ -95,6 +95,70 @@ def test_inventory_supports_unborn_repository(tmp_path: Path) -> None:
     assert item["identity"]["available"] is False
 
 
+def test_propose_plan_groups_single_topic_implementation_tests_and_docs(tmp_path: Path) -> None:
+    repository = initialize_repository(tmp_path / "proposal", with_identity=True)
+    create_baseline(repository)
+    for relative_path in (
+        "nerfus/evaluation/metric_runtime.py",
+        "tests/test_metric_runtime.py",
+        "docs/metric_runtime.md",
+        "nerfus/nerf/ultrasound_ray_footprint.py",
+        "tests/test_ultrasound_ray_footprint.py",
+        "scripts/run_physical_footprint.py",
+    ):
+        path = repository / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("# changed implementation\n", encoding="utf-8")
+
+    code, payload = helper("--mode", "propose-plan", "--repo", str(repository))
+
+    assert code == 0
+    proposal = payload["repositories"][0]
+    groups = {item["id"]: item for item in proposal["candidates"]}
+    assert set(groups) == {"evaluation", "spatial"}
+    assert "tests/test_metric_runtime.py" in groups["evaluation"]["paths"]
+    assert "docs/metric_runtime.md" in groups["evaluation"]["paths"]
+    assert "tests/test_ultrasound_ray_footprint.py" in groups["spatial"]["paths"]
+    assert proposal["bridge_paths"] == []
+    assert proposal["safe_to_seal"] is True
+    assert git(repository, "diff", "--cached", "--name-only").stdout.strip() == ""
+
+
+def test_propose_plan_marks_multi_topic_file_as_bridge_without_mutation(tmp_path: Path) -> None:
+    repository = initialize_repository(tmp_path / "bridge", with_identity=True)
+    create_baseline(repository)
+    path = repository / "nerfus" / "nerf" / "metric_cache_runtime.py"
+    path.parent.mkdir(parents=True)
+    path.write_text("metric cache runtime\n", encoding="utf-8")
+
+    code, payload = helper("--mode", "propose-plan", "--repo", str(repository))
+
+    assert code == 0
+    proposal = payload["repositories"][0]
+    assert proposal["safe_to_seal"] is False
+    assert proposal["bridge_paths"][0]["path"] == "nerfus/nerf/metric_cache_runtime.py"
+    bridge = proposal["bridge_paths"][0]
+    assert {bridge["primary_topic"], *bridge["bridge_topics"]} == {"cache-validation", "evaluation"}
+    assert git(repository, "diff", "--cached", "--name-only").stdout.strip() == ""
+
+
+def test_propose_plan_reports_preexisting_stage_as_blocker(tmp_path: Path) -> None:
+    repository = initialize_repository(tmp_path / "proposal-staged", with_identity=True)
+    create_baseline(repository)
+    path = repository / "metric_runtime.py"
+    path.write_text("metric\n", encoding="utf-8")
+    git(repository, "add", "--", "metric_runtime.py")
+
+    code, payload = helper("--mode", "propose-plan", "--repo", str(repository))
+
+    assert code == 0
+    proposal = payload["repositories"][0]
+    assert proposal["safe_to_seal"] is False
+    assert proposal["blocking_conditions"] == [
+        {"kind": "preexisting_staged", "paths": ["metric_runtime.py"]}
+    ]
+
+
 def test_direct_commit_can_create_root_commit_with_approved_local_identity(tmp_path: Path) -> None:
     repository = initialize_repository(tmp_path / "root", with_identity=False)
     (repository / "README.md").write_text("# Root\n", encoding="utf-8")

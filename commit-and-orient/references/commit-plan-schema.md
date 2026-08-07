@@ -4,6 +4,24 @@ Read this reference when a task spans multiple repositories, contains more than
 20 explicit files, creates a repository's first commit, or needs approval bound
 to the current working-tree contents.
 
+## Candidate analysis before a draft
+
+For a dirty tree with more than one possible concern, run `propose-plan` before
+writing this manifest. Its JSON is a read-only, file-level analysis with
+candidate groups, `bridge_paths`, and `unclassified_paths`.
+
+```bash
+conda run -n codex-tools python <skill-dir>/scripts/commit_scoped_changes.py \
+  --mode propose-plan --repo <repository-root>
+```
+
+Do not copy a candidate into a draft automatically. Resolve every bridge path
+first: assign the full file to one atomic commit, or merge the dependent
+candidates. The current schema intentionally forbids a file in more than one
+commit and does not support hunk-level automatic execution. Record the review
+decision in the commit purpose or plan-side notes; only exact paths enter the
+sealed manifest.
+
 ## Draft schema
 
 Create a local-only UTF-8 JSON draft. A workspace `.planning/` directory is a

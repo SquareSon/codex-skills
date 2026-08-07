@@ -1,0 +1,4 @@
+interface:
+  display_name: "W&B Run Reconcile"
+  short_description: "Audit, recover, verify, and clean W&B runs safely."
+  default_prompt: "Use $wandb-run-reconcile to audit local W&B logs against cloud runs and propose a safe recovery or cleanup plan."
